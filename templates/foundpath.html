@@ -1,0 +1,33 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Index
+{% endblock %}
+
+{% block main %}
+    start: {{start}}
+    end: {{end}}
+    
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th scope="col">Track</th>
+                <th scope="col">Artists</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in path %}
+                <tr>
+                    {% if item.artist_credit %}
+                        <td>{{ item.name }}</td>
+                        <td>{{ item.artist_credit }}</td>
+                    {% else %}
+                        <td colspan="2" style="color:teal;">{{ item.name }}</td>
+                    {% endif %}
+                    
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+{% endblock %}

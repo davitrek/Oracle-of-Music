@@ -1,0 +1,19 @@
+from os import environ
+from dotenv import load_dotenv
+load_dotenv()
+
+class Config():
+    SQLALCHEMY_DATABASE_URI = environ['DATABASE_URL']
+    SPOTIFY_CLIENT_ID = environ['SPOTIFY_CLIENT_ID']
+    SPOTIFY_CLIENT_SECRET = environ['SPOTIFY_CLIENT_SECRET']
+    
+    SPOTIFY_SEARCH_URL = environ['SPOTIFY_SEARCH_URL']
+    SPOTIFY_ARTISTS_URL = environ['SPOTIFY_ARTISTS_URL']
+    SPOTIFY_ALBUMS_URL = environ['SPOTIFY_ALBUMS_URL']
+    
+    SPOTIFY_ACCESS_TOKEN = ''
+    AUTHORISATION_HEADER = {}
+
+    SCRAPED_NAMES_FILE_PATH = environ['SCRAPED_NAMES_FILE_PATH']
+
+    MIN_RECORDINGS_COUNT = 10

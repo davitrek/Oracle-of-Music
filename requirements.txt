@@ -1,0 +1,7 @@
+Flask
+Flask-SQLAlchemy
+SQLAlchemy
+python-dotenv
+mbdata
+psycopg[binary,pool]
+pytest

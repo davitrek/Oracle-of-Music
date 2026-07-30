@@ -1,0 +1,44 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Buy Stocks
+{% endblock %}
+
+{% block main %}
+  <h1>Choose Path</h1>
+  <p>Path:</p>
+  <form action="/findpath" method="post">
+    <div class="mb-3">
+      <input autocomplete="off" autofocus class="form-control mx-auto w-auto" name="start" placeholder="Start Artist" type="text">
+    </div>
+    <div class="mb-3">
+      <input autocomplete="off" autofocus class="form-control mx-auto w-auto" name="end" placeholder="End Artist" type="text">
+    </div>
+    <button class="btn btn-primary" type="submit">Find Path!</button>
+  </form>
+  {% if error %}
+    <p style="color:red;">{{ error }}</p>
+  {% endif %}
+  
+  {% if path %}
+    <svg
+      viewBox="0 0 {{ svg_width }} {{ svg_height }}"
+      xmlns="http://www.w3.org/2000/svg"
+      height="200"
+      width="100%">
+      {% for circle_position in circle_positions %}
+        <circle cx="{{ circle_position }}" cy="100" r="{{ circle_radius }}" fill="none" stroke = "black" stroke-width="3"/>
+      {% endfor %}
+      {% for line_position_1, line_position_2 in line_positions %}
+        <line x1="{{ line_position_1 }}" y1="100" x2="{{ line_position_2 }}" y2="100" stroke="black" stroke-width="3"/>
+      {% endfor %}
+      {% for name, location in name_location %}
+        <text x="{{ location }}" y="100" text-anchor="middle" dominant-baseline="middle" font-size="16">{{ name }}</text>
+      {% endfor %}
+
+    </svg>
+  {% endif %}
+  
+  <!-- <script src="{{ url_for('static', filename='graph.js') }}"></script> -->
+    
+{% endblock %}
