@@ -7,7 +7,8 @@ import pytest
 from models import ArtistCreditName, Track
 from sqlalchemy import select
 import random
-from app import create_adjacency_list
+
+from adjacency_list import create_adjacency_list
 
 from flask import Flask
 

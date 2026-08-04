@@ -13,7 +13,7 @@ from db import db
 #from mbdata.models import apply_schema
 
 class ArtistAdjacents(db.Model):
-    #__tablename__ = 'artist_adjacents'
+    __tablename__ = 'artist_adjacents'
     # Mapped[xyz] can be omitted        mapped_column can be omitted -> type and attributes will be inferred
     artist0_id: Mapped[int]              = mapped_column(primary_key = True)
     artist1_id: Mapped[int]              = mapped_column(primary_key = True)
@@ -547,3 +547,95 @@ class Release(db.Model):
     #packaging = relationship('ReleasePackaging', foreign_keys=[packaging_id])
     #language = relationship('Language', foreign_keys=[language_id])
     #script = relationship('Script', foreign_keys=[script_id])
+
+
+class ReleaseGroupSecondaryType(db.Model):
+    __tablename__ = 'release_group_secondary_type'
+    __table_args__ = (
+        Index('release_group_secondary_type_idx_gid', 'gid', unique=True),
+        {'schema': 'musicbrainz'}
+    )
+
+    id = Column(Integer, nullable=False, primary_key=True)
+    name = Column(String, nullable=False)
+    parent_id = Column('parent', Integer, ForeignKey('musicbrainz.release_group_secondary_type.id', name='release_group_secondary_type_fk_parent'))
+    #parent_id = Column('parent', Integer, ForeignKey(apply_schema('release_group_secondary_type.id', 'musicbrainz'), name='release_group_secondary_type_fk_parent'))
+    child_order = Column(Integer, nullable=False, default=0, server_default=sql.text('0'))
+    description = Column(String)
+    gid = Column(UUID, nullable=False)
+
+    parent = relationship('ReleaseGroupSecondaryType', foreign_keys=[parent_id])
+
+
+class ReleaseGroupSecondaryTypeJoin(db.Model):
+    __tablename__ = 'release_group_secondary_type_join'
+    __table_args__ = (
+        {'schema': 'musicbrainz'}
+    )
+
+    release_group_id = Column('release_group', Integer, ForeignKey('musicbrainz.release_group.id', name='release_group_secondary_type_join_fk_release_group'), nullable=False, primary_key=True)
+    #release_group_id = Column('release_group', Integer, ForeignKey(apply_schema('release_group.id', 'musicbrainz'), name='release_group_secondary_type_join_fk_release_group'), nullable=False, primary_key=True)
+    secondary_type_id = Column('secondary_type', Integer, ForeignKey('musicbrainz.release_group_secondary_type.id', 'musicbrainz', name='release_group_secondary_type_join_fk_secondary_type'), nullable=False, primary_key=True)
+    #secondary_type_id = Column('secondary_type', Integer, ForeignKey(apply_schema('release_group_secondary_type.id', 'musicbrainz'), name='release_group_secondary_type_join_fk_secondary_type'), nullable=False, primary_key=True)
+    created = Column(DateTime(timezone=True), nullable=False, server_default=sql.func.now())
+
+    release_group = relationship('ReleaseGroup', foreign_keys=[release_group_id], innerjoin=True, backref=backref('secondary_types'))
+    secondary_type = relationship('ReleaseGroupSecondaryType', foreign_keys=[secondary_type_id], innerjoin=True)
+
+    
+class URL(db.Model):
+    __tablename__ = 'url'
+    __table_args__ = (
+        Index('url_idx_gid', 'gid', unique=True),
+        Index('url_idx_url', 'url', unique=True),
+        {'schema': 'musicbrainz'}
+    )
+
+    id = Column(Integer, primary_key=True)
+    gid = Column(UUID, nullable=False)
+    url = Column(String, nullable=False)
+    #edits_pending = Column(Integer, nullable=False, default=0, server_default=sql.text('0'))
+    #last_updated = Column(DateTime(timezone=True), server_default=sql.func.now())
+
+
+class LinkArtistURL(db.Model):
+    __tablename__ = 'l_artist_url'
+    __table_args__ = (
+        Index('l_artist_url_idx_uniq', 'entity0', 'entity1', 'link', 'link_order', unique=True),
+        Index('l_artist_url_idx_entity1', 'entity1'),
+        {'schema': 'musicbrainz'}
+    )
+
+    id = Column(Integer, primary_key=True)
+    link_id = Column('link', Integer, ForeignKey('musicbrainz.link.id', name='l_artist_url_fk_link'), nullable=False)
+    #link_id = Column('link', Integer, ForeignKey(apply_schema('link.id', 'musicbrainz'), name='l_artist_url_fk_link'), nullable=False)
+    entity0_id = Column('entity0', Integer, ForeignKey('musicbrainz.artist.id', name='l_artist_url_fk_entity0'), nullable=False)
+    #entity0_id = Column('entity0', Integer, ForeignKey(apply_schema('artist.id', 'musicbrainz'), name='l_artist_url_fk_entity0'), nullable=False)
+    entity1_id = Column('entity1', Integer, ForeignKey('musicbrainz.url.id', name='l_artist_url_fk_entity1'), nullable=False)
+    #entity1_id = Column('entity1', Integer, ForeignKey(apply_schema('url.id', 'musicbrainz'), name='l_artist_url_fk_entity1'), nullable=False)
+    #edits_pending = Column(Integer, nullable=False, default=0, server_default=sql.text('0'))
+    #last_updated = Column(DateTime(timezone=True), server_default=sql.func.now())
+    link_order = Column(Integer, nullable=False, default=0, server_default=sql.text('0'))
+    entity0_credit = Column(String, nullable=False, default='', server_default=sql.text("''"))
+    entity1_credit = Column(String, nullable=False, default='', server_default=sql.text("''"))
+
+    link = relationship('Link', foreign_keys=[link_id], innerjoin=True)
+    entity0 = relationship('Artist', foreign_keys=[entity0_id], innerjoin=True)
+    entity1 = relationship('URL', foreign_keys=[entity1_id], innerjoin=True)
+
+    @hybrid_property
+    def artist(self):
+        return self.entity0
+
+    @hybrid_property
+    def artist_id(self):
+        return self.entity0_id
+
+    @hybrid_property
+    def url(self):
+        return self.entity1
+
+    @hybrid_property
+    def url_id(self):
+        return self.entity1_id
+

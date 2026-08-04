@@ -27,11 +27,11 @@
       height="200"
       width="100%">
       {% for circle_position in circle_positions %}
-        <defs>
+        <!-- <defs>
           <pattern id="artistImg" patternUnits="objectBoundingBox" width="1" height="1">
-            <image href="{{ artist_images[0] }}" x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid slice"/>
+            <image href="" x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid slice"/>
           </pattern>
-        </defs>
+        </defs> -->
 
         <circle cx="{{ circle_position }}" cy="100" r="{{ circle_radius }}" fill="none" stroke = "black" stroke-width="3" fill="url(#artistImg)"/>
       {% endfor %}
