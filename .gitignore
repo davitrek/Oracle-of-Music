@@ -1,8 +1,8 @@
-/.env
-/.pytest_cache
-/.venv
-/.vscode
-/__pycache__
+.env
+.pytest_cache
+.venv
+.vscode
+__pycache__
 /comment_out_tables.py
 /downloaded_mbdata
 /mbdump.tar.bz2
@@ -12,4 +12,3 @@
 /scrapednames.txt
 /sql
 /subset_sql
-/tests/__pycache__

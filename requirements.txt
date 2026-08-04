@@ -5,3 +5,4 @@ python-dotenv
 mbdata
 psycopg[binary,pool]
 pytest
+requests

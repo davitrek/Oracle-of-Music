@@ -1,5 +1,5 @@
-from models import Artist, ArtistAlias, Recording, LinkArtistArtist, LinkArtistRecording, LinkType, Link, ArtistCredit, ArtistCreditName, ArtistAdjacents
-from sqlalchemy.orm import Session
+from models import Artist, ArtistAlias, Recording, LinkArtistArtist, LinkArtistRecording, LinkType, Link, ArtistCredit, ArtistCreditName, ArtistAdjacents, Track, ReleaseStatus, Release, Medium, ReleaseGroup, ReleaseGroupPrimaryType
+from sqlalchemy.orm import Session, aliased
 from sqlalchemy import select, func
 
 from sqlalchemy.dialects.postgresql import insert
@@ -18,6 +18,11 @@ from db import db
 
 from flask import render_template, request
 
+import helpers
+
+valid_track_ids = []
+
+adjacency_list = defaultdict(set)
 
 # create the app
 app = Flask(__name__)
@@ -27,8 +32,6 @@ app.config["SQLALCHEMY_ECHO"] = True
 # initialize the app with Flask-SQLAlchemy extension
 db.init_app(app)
 
-
-adjacency_list = defaultdict(set)
 
 
 count = 100
@@ -86,22 +89,57 @@ def find_path():
         })
 
         pad = 0
-        svg_width = 800
+        svg_width = 1000
         svg_height = 200
         #circle_radius = (svg_width - 2 * pad) / (3 * len(path_artists) - 2)
         circle_radius = 50
+        line_length = 25
+        square_size = round(3/2 * circle_radius)
 
-        circle_positions = []
+        circle_centres = []
         for i in range(len(path_artists)):
-            circle_positions.append(svg_width / (2 * len(path_artists)) * (2 * i + 1))
+            circle_centres.append(svg_width / (2 * len(path_artists)) * (2 * i + 1))
+
+        square_centres = []
+        for previous, current in zip(circle_centres, circle_centres[1:]):
+            square_centres.append((current + previous) / 2)
+
+        square_left_edges = []
+        for square in square_centres:
+            square_left_edges.append(square - square_size / 2)
+
+        # square_positions = []
+        # for previous, current in zip(circle_positions, circle_positions[1:]):
+        #     square_positions.append((current + previous) / 2 - square_size / 2)
+        
+        # line_positions = []
+        # for i in range(len(path_artists) - 1):
+        #     line_positions.append((circle_positions[i] + circle_radius, circle_positions[i + 1] - circle_radius))
 
         line_positions = []
-        for i in range(len(path_artists) - 1):
-            line_positions.append((circle_positions[i] + circle_radius, circle_positions[i + 1] - circle_radius))
+        for circle_first_pos, square_pos, circle_second_pos in zip(circle_centres, square_centres, circle_centres[1:]):
+            line_positions.append((circle_first_pos + circle_radius, square_pos - square_size / 2))
+            line_positions.append((square_pos + square_size / 2, circle_second_pos - circle_radius))
 
-        name_location_pairing = []
-        for name, location in zip(path_artists, circle_positions):
-            name_location_pairing.append((name.name, location))
+        artist_name_location = []
+        for name, location in zip(path_artists, circle_centres):
+            artist_name_location.append((name.name, location))
+
+        recording_name_location = []
+        for name, location in zip(path_recordings, square_centres):
+            recording_name_location.append((name.name, location))
+
+    
+        # artist_images = []
+        # for artist, recording in zip(path_artists, path_recordings):
+        #     search_params = {
+        #         #'q': f'artist:{artist.name} track:{recording.name}',
+        #         'q': f'{artist.name}',
+        #         'type': 'artist',
+        #         'limit': '10'
+        #     }
+        #     result = helpers.search_spotify_until_found_artist(artist.name, Config.SPOTIFY_SEARCH_URL, search_params)
+        #     artist_images.append(result['images'])
 
         return render_template(
             'findpath.html',
@@ -109,10 +147,14 @@ def find_path():
             svg_height=svg_height,
             path=combined_path,
             circle_radius=circle_radius,
-            circle_positions=circle_positions,
+            circle_positions=circle_centres,
+            square_positions=square_left_edges,
+            square_size=square_size,
             line_positions=line_positions,
-            name_location=name_location_pairing
+            artist_name_location=artist_name_location,
+            recording_name_location=recording_name_location,
         )
+
     else:
         return render_template('findpath.html', error='No path found :(')
 
@@ -120,9 +162,9 @@ def find_path():
 def init_adjacency_list():
     t0 = time()
     # during testing to skip loading names again
-    loaded_adjacency_list = load_adjacency_list()
+    #loaded_adjacency_list = load_adjacency_list()
     global adjacency_list
-    adjacency_list = create_adjacency_list(count, loaded_adjacency_list)
+    adjacency_list = create_adjacency_list(count)#, loaded_adjacency_list)
     
     #adjacency_list = create_adjacency_list(session, count)
 
@@ -306,9 +348,7 @@ def bfs(adj, root, target):
 
 
 def create_adjacency_list(count, loaded_adjacency_list=None):
-    tc = 0
-    tn = 0
-    tg = 0
+    artist_ids_to_search = []
     with open('missingnames.txt', 'w') as f:
         if loaded_adjacency_list:
             adjacency_list = loaded_adjacency_list
@@ -317,50 +357,30 @@ def create_adjacency_list(count, loaded_adjacency_list=None):
 
         for i in range(count):
             # get next artist name from scraped list
-            t0 = time()
             name = get_artist_name_from_list(i + 1)
             if not name:
+                # if name empty, means file read completely
                 break
-            t1 = time()
-            tg = tg + t1 - t0
 
             # search database for artist
-            t0 = time()
             artist = get_db_artist_by_name(name)
             if not artist:
+                # write that artist could not be found
                 f.write(name + '\n')
-                # if name empty, means file read completely
                 continue
             
-            t1 = time()
-            tn = tn + t1 - t0
-            
-            # get all tracks with collaborators where artist is credited, adding only collaborator ids to a set
-            #   each list entry should have only the collaborator id -> I'll search for the tracks later (this'll quick and less memory used)
-            #   if there is at least one track in that list, create entry in adjacency_list -> {id_of artist in artist table: adjacent nodes list}
-            t0 = time()
-
             # if loaded adjacency list already had this artist, skip
-            if adjacency_list[artist.id]:
-                continue
+            if not adjacency_list[artist.id]:
+                artist_ids_to_search.append(artist.id)
 
-            artist_collaborators = set(get_artist_collaborators(artist))
-            t1 = time()
-            tc = tc + t1 - t0
-            
-            if len(artist_collaborators) > 0:
-                adjacency_list[artist.id] = artist_collaborators
-
-        print(tc)
-        print(tn)
-        print(tg)
+        adjacency_list = adjacency_list | get_artist_collaborators(artist_ids_to_search)
         return adjacency_list
 
 
-def get_artist_name_from_list(name_number):
+def get_artist_name_from_list(line_number):
     with open(Config.SCRAPED_NAMES_FILE_PATH) as f:
         for i, line in enumerate(f):
-            if i == name_number - 1:
+            if i == line_number - 1:
                 return line[:-1]
     return None
 
@@ -401,25 +421,6 @@ def get_db_artist_by_name(name):
 
         search_result = db.session.execute(stmt).scalars().all()
     
-    
-    # # search for name within artist.name and within artist_alias.name columns
-    # sub_stmt = (
-    #     select(ArtistAlias.artist_id)
-    #     # using lower(musicbrainz_unaccent(name)) index on ArtistAlias 
-    #     .where(func.lower(func.musicbrainz_unaccent(ArtistAlias.name)) == func.lower(func.musicbrainz_unaccent(name)))
-    # )
-
-    # stmt = (
-    #     select(Artist)
-    #     .where((Artist.name == name) | (Artist.id.in_(sub_stmt)))
-    # # checking presence of 'area' and 'begin_date_year' attributes to filter garbage entries
-    #     #.where(Artist.area_id.is_not(None))
-    # )
-
-    # using .scalars().all() so I can check if I get multiple more easily
-    #   if I end up assuming I only find one, can replace with .scalar_one_or_none()
-    #search_result = session.execute(stmt).scalars().all()
-
     if len(search_result) == 1:
         artist = search_result[0]
         return artist
@@ -518,18 +519,6 @@ def filter_db_artists(search_results, name):
 
 
 def get_artist_recordings(artist):
-    # NOT the same as linked_records
-
-    # sub_sub_stmt = (
-    #     select(ArtistCreditName.artist_credit_id)
-    #     .where(ArtistCreditName.artist == artist)
-    # )
-
-    # stmt = (
-    #     select(Recording)
-    #     .where(Recording.artist_credit_id.in_(sub_sub_stmt))
-    # )
-    
     sub_sub_stmt = (
         select(ArtistCreditName.artist_credit_id)
         .where(ArtistCreditName.artist == artist)
@@ -550,8 +539,113 @@ def get_artist_recordings(artist):
     return db.session.execute(stmt).scalars().all()
 
 
+# return only tracks that are on releases labelled as 'Official' AND ('Album',
+# 'EP', or 'Single')
+def get_filtered_tracks():
+    # need to review whether filtering ReleaseGroupPrimaryType is even worthwhile
+    stmt = (
+        select(ReleaseGroupPrimaryType.id)
+        .where((ReleaseGroupPrimaryType.name == 'Album') 
+               | (ReleaseGroupPrimaryType.name == 'Single') 
+               | (ReleaseGroupPrimaryType.name == 'EP'))
+    )
+    release_group_primary_type_ids = db.session.execute(stmt).scalars().all()
+
+    stmt = (
+        select(ReleaseStatus.id)
+        .where(ReleaseStatus.name == 'Official')
+    )
+    official_release_status_id = db.session.execute(stmt).scalar_one()
+
+    tc0 = time()
+    release_group_stmt = (
+        select(ReleaseGroup.id)
+        .where(ReleaseGroup.type_id.in_(release_group_primary_type_ids))
+    )
+    tmp = db.session.execute(release_group_stmt).scalars().all()
+    tc1 = time()
+    ttc = tc1 - tc0
+    
+    td0 = time()
+    release_stmt = (
+        select(Release.id)
+        .where(Release.release_group_id.in_(release_group_stmt))
+        .where(Release.status_id == official_release_status_id)
+    )
+    tmp = db.session.execute(release_stmt).scalars().all()
+    td1 = time()
+    ttd = td1 - td0
+
+    te0 = time()
+    stmt = (
+        select(Track.id)
+        .where(Track.medium_id.in_(release_stmt))
+        .limit(100000)                                         # NOTE: for testing only
+    )
+    s = db.session.execute(stmt).scalars().all()
+    te1 = time()
+    tte = te1 - te0
+
+    return s
+
+
+# ALTERNATIVE ALTERNATIVE. this one uses track table instead of recording table
+# get all tracks with collaborators where artist is credited, adding them to a list
+#   each list entry should have the collaborator id and recording id
+#   if there is at least one track in that list, create entry in adjacency_list 
+#   -> {id_of artist in artist table: adjacent nodes list}
+def get_artist_collaborators(artist_ids):
+    acn_target = aliased(ArtistCreditName)
+    acn_collab = aliased(ArtistCreditName)
+    artist_target = aliased(Artist)
+    artist_collab = aliased(Artist)
+    
+    # artist_target
+    # -> acn_target
+    # -> artist_credit
+    # ... (A)
+    # -> acn_collab
+    # -> artist_collab
+    
+    valid_release_types = ['Album', 'Single', 'EP']
+    official_status = 'Official'
+    
+    stmt = (
+        select(artist_target.id, artist_collab.id)
+        # --- target artist lookup ---
+        .select_from(artist_target)
+        .where(artist_target.id.in_(artist_ids))
+        .join(acn_target,  acn_target.artist_id == artist_target.id)
+        # --- connectors ---
+        .join(ArtistCredit,     ArtistCredit.id == acn_target.artist_credit_id)
+        .join(Track,     Track.artist_credit_id == ArtistCredit.id)
+        .join(Medium,                 Medium.id == Track.medium_id)
+        .join(Release,               Release.id == Medium.release_id)
+        .join(ReleaseGroup,     ReleaseGroup.id == Release.release_group_id)
+        # --- filters ---
+        .join(ReleaseGroupPrimaryType, ReleaseGroupPrimaryType.id == ReleaseGroup.type_id)
+        .where(ReleaseGroupPrimaryType.name.in_(valid_release_types))
+        .join(ReleaseStatus,                     ReleaseStatus.id == Release.status_id)
+        .where(ReleaseStatus.name == official_status)
+        # --- collab artist lookup ---
+        .join(acn_collab,             acn_collab.artist_credit_id == ArtistCredit.id)
+        .join(artist_collab,                     artist_collab.id == acn_collab.artist_id)
+        .where(artist_collab.id != artist_target.id)
+    )
+    
+    # print(stmt)
+
+    artist_collabs_list = db.session.execute(stmt).all()
+
+    adj = defaultdict(set)
+    for i in artist_collabs_list:
+        adj[i[0]].add(i[1])
+
+    return adj
+
+
 # ALTERNATIVE. this one skips get_artist_recordings
-def get_artist_collaborators(artist):
+def _get_artist_collaborators(artist):
     sub_sub_stmt = (
         select(Recording.artist_credit_id)
     )
@@ -573,27 +667,6 @@ def get_artist_collaborators(artist):
     s = db.session.execute(stmt).scalars().all()
 
     return s
-
-
-# get all tracks with collaborators where artist is credited, adding them to a list
-#   each list entry should have the collaborator id and recording id
-#   if there is at least one track in that list, create entry in adjacency_list 
-#   -> {id_of artist in artist table: adjacent nodes list}
-def _get_artist_collaborators(artist):
-    collaborator_ids = set()
-    recordings = get_artist_recordings(artist)
-
-    for recording in recordings:
-        # skip entries with no collaborators !!!!!!!!!! removed!!!!!!!!!!
-        #if not recording.artist_credit.artist_count > 1:
-        #    continue
-
-        for collaborator in recording.artist_credit.artists:
-            # check this is not main artist I'm searching
-            if collaborator.artist_id != artist.id:
-                collaborator_ids.add(collaborator.artist_id)
-
-    return collaborator_ids
 
 
 # BFS for a single connected component
@@ -618,4 +691,9 @@ def bfsConnected(adj, src, visited, res, target):
 
 
 with app.app_context():
+    # artist = get_db_artist_by_name('Kendrick Lamar')
+    # get_artist_collaborators(artist_ids)
+    
     init_adjacency_list()
+    #Config.SPOTIFY_ACCESS_TOKEN = helpers.get_spotify_access_token()
+    #Config.AUTHORISATION_HEADER['Authorization'] = f'Bearer {Config.SPOTIFY_ACCESS_TOKEN}'

@@ -396,3 +396,154 @@ class ArtistCreditName(db.Model):
 
     artist_credit = relationship('ArtistCredit', foreign_keys=[artist_credit_id], innerjoin=True, backref=backref('artists', order_by="ArtistCreditName.position"))
     artist = relationship('Artist', foreign_keys=[artist_id], innerjoin=True)
+
+
+class Track(db.Model):
+    __tablename__ = 'track'
+    __table_args__ = (
+        Index('track_idx_gid', 'gid', unique=True),
+        Index('track_idx_recording', 'recording'),
+        Index('track_idx_artist_credit', 'artist_credit'),
+        {'schema': 'musicbrainz'}
+    )
+
+    id = Column(Integer, primary_key=True)
+    gid = Column(UUID, nullable=False)
+    recording_id = Column('recording', Integer, ForeignKey('musicbrainz.recording.id', name='track_fk_recording'), nullable=False)
+    #recording_id = Column('recording', Integer, ForeignKey(apply_schema('recording.id', 'musicbrainz'), name='track_fk_recording'), nullable=False)
+    medium_id = Column('medium', Integer, ForeignKey('musicbrainz.medium.id', name='track_fk_medium'), nullable=False)
+    #medium_id = Column('medium', Integer, ForeignKey(apply_schema('medium.id', 'musicbrainz'), name='track_fk_medium'), nullable=False)
+    position = Column(Integer, nullable=False)
+    number = Column(String, nullable=False)
+    name = Column(String, nullable=False)
+    artist_credit_id = Column('artist_credit', Integer, ForeignKey('musicbrainz.artist_credit.id', name='track_fk_artist_credit'), nullable=False)
+    #artist_credit_id = Column('artist_credit', Integer, ForeignKey(apply_schema('artist_credit.id', 'musicbrainz'), name='track_fk_artist_credit'), nullable=False)
+    length = Column(Integer)
+    #edits_pending = Column(Integer, nullable=False, default=0, server_default=sql.text('0'))
+    #last_updated = Column(DateTime(timezone=True), server_default=sql.func.now())
+    is_data_track = Column(Boolean, nullable=False, default=False, server_default=sql.false())
+
+    recording = relationship('Recording', foreign_keys=[recording_id], innerjoin=True, backref=backref('tracks'))
+    medium = relationship('Medium', foreign_keys=[medium_id], innerjoin=True, backref=backref('tracks', order_by="Track.position"))
+    artist_credit = relationship('ArtistCredit', foreign_keys=[artist_credit_id], innerjoin=True)
+
+class Medium(db.Model):
+    __tablename__ = 'medium'
+    __table_args__ = (
+        Index('medium_idx_gid', 'gid', unique=True),
+        Index('medium_idx_track_count', 'track_count'),
+        {'schema': 'musicbrainz'}
+    )
+
+    id = Column(Integer, primary_key=True)
+    release_id = Column('release', Integer, ForeignKey('musicbrainz.release.id', name='medium_fk_release'), nullable=False)
+    #release_id = Column('release', Integer, ForeignKey(apply_schema('release.id', 'musicbrainz'), name='medium_fk_release'), nullable=False)
+    position = Column(Integer, nullable=False)
+    #format_id = Column('format', Integer, ForeignKey('musicbrainz.medium_format.id', name='medium_fk_format'))
+    #format_id = Column('format', Integer, ForeignKey(apply_schema('medium_format.id', 'musicbrainz'), name='medium_fk_format'))
+    name = Column(String, nullable=False, default='', server_default=sql.text("''"))
+    #edits_pending = Column(Integer, nullable=False, default=0, server_default=sql.text('0'))
+    #last_updated = Column(DateTime(timezone=True), server_default=sql.func.now())
+    track_count = Column(Integer, nullable=False, default=0, server_default=sql.text('0'))
+    gid = Column(UUID, nullable=False)
+
+    release = relationship('Release', foreign_keys=[release_id], innerjoin=True, backref=backref('mediums', order_by="Medium.position"))
+    #format = relationship('MediumFormat', foreign_keys=[format_id])
+
+class ReleaseGroup(db.Model):
+    __tablename__ = 'release_group'
+    __table_args__ = (
+        Index('release_group_idx_gid', 'gid', unique=True),
+        Index('release_group_idx_name', 'name'),
+        Index('release_group_idx_artist_credit', 'artist_credit'),
+        {'schema': 'musicbrainz'}
+    )
+
+    id = Column(Integer, primary_key=True)
+    gid = Column(UUID, nullable=False)
+    name = Column(String, nullable=False)
+    artist_credit_id = Column('artist_credit', Integer, ForeignKey('musicbrainz.artist_credit.id', name='release_group_fk_artist_credit'), nullable=False)
+    #artist_credit_id = Column('artist_credit', Integer, ForeignKey(apply_schema('artist_credit.id', 'musicbrainz'), name='release_group_fk_artist_credit'), nullable=False)
+    type_id = Column('type', Integer, ForeignKey('musicbrainz.release_group_primary_type.id', name='release_group_fk_type'))
+    #type_id = Column('type', Integer, ForeignKey(apply_schema('release_group_primary_type.id', 'musicbrainz'), name='release_group_fk_type'))
+    comment = Column(String(255), nullable=False, default='', server_default=sql.text("''"))
+    edits_pending = Column(Integer, nullable=False, default=0, server_default=sql.text('0'))
+    last_updated = Column(DateTime(timezone=True), server_default=sql.func.now())
+
+    artist_credit = relationship('ArtistCredit', foreign_keys=[artist_credit_id], innerjoin=True)
+    type = relationship('ReleaseGroupPrimaryType', foreign_keys=[type_id])
+
+
+class ReleaseGroupPrimaryType(db.Model):
+    __tablename__ = 'release_group_primary_type'
+    __table_args__ = (
+        Index('release_group_primary_type_idx_gid', 'gid', unique=True),
+        {'schema': 'musicbrainz'}
+    )
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), nullable=False)
+    parent_id = Column('parent', Integer, ForeignKey('musicbrainz.release_group_primary_type.id', name='release_group_primary_type_fk_parent'))
+    #parent_id = Column('parent', Integer, ForeignKey(apply_schema('release_group_primary_type.id', 'musicbrainz'), name='release_group_primary_type_fk_parent'))
+    child_order = Column(Integer, nullable=False, default=0, server_default=sql.text('0'))
+    description = Column(String)
+    gid = Column(UUID, nullable=False)
+
+    parent = relationship('ReleaseGroupPrimaryType', foreign_keys=[parent_id])
+
+
+class ReleaseStatus(db.Model):
+    __tablename__ = 'release_status'
+    __table_args__ = (
+        Index('release_status_idx_gid', 'gid', unique=True),
+        {'schema': 'musicbrainz'}
+    )
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), nullable=False)
+    parent_id = Column('parent', Integer, ForeignKey('musicbrainz.release_status.id', name='release_status_fk_parent'))
+    #parent_id = Column('parent', Integer, ForeignKey(apply_schema('release_status.id', 'musicbrainz'), name='release_status_fk_parent'))
+    child_order = Column(Integer, nullable=False, default=0, server_default=sql.text('0'))
+    description = Column(String)
+    gid = Column(UUID, nullable=False)
+
+    parent = relationship('ReleaseStatus', foreign_keys=[parent_id])
+
+
+class Release(db.Model):
+    __tablename__ = 'release'
+    __table_args__ = (
+        Index('release_idx_gid', 'gid', unique=True),
+        Index('release_idx_name', 'name'),
+        Index('release_idx_release_group', 'release_group'),
+        Index('release_idx_artist_credit', 'artist_credit'),
+        {'schema': 'musicbrainz'}
+    )
+
+    id = Column(Integer, primary_key=True)
+    gid = Column(UUID, nullable=False)
+    name = Column(String, nullable=False)
+    artist_credit_id = Column('artist_credit', Integer, ForeignKey('musicbrainz.artist_credit.id', name='release_fk_artist_credit'), nullable=False)
+    #artist_credit_id = Column('artist_credit', Integer, ForeignKey(apply_schema('artist_credit.id', 'musicbrainz'), name='release_fk_artist_credit'), nullable=False)
+    release_group_id = Column('release_group', Integer, ForeignKey('musicbrainz.release_group.id', name='release_fk_release_group'), nullable=False)
+    #release_group_id = Column('release_group', Integer, ForeignKey(apply_schema('release_group.id', 'musicbrainz'), name='release_fk_release_group'), nullable=False)
+    status_id = Column('status', Integer, ForeignKey('musicbrainz.release_status.id', name='release_fk_status'))
+    #status_id = Column('status', Integer, ForeignKey(apply_schema('release_status.id', 'musicbrainz'), name='release_fk_status'))
+    packaging_id = Column('packaging', Integer, ForeignKey('musicbrainz.release_packaging.id', name='release_fk_packaging'))
+    #packaging_id = Column('packaging', Integer, ForeignKey(apply_schema('release_packaging.id', 'musicbrainz'), name='release_fk_packaging'))
+    language_id = Column('language', Integer, ForeignKey('musicbrainz.language.id', name='release_fk_language'))
+    #language_id = Column('language', Integer, ForeignKey(apply_schema('language.id', 'musicbrainz'), name='release_fk_language'))
+    script_id = Column('script', Integer, ForeignKey('musicbrainz.script.id', name='release_fk_script'))
+    #script_id = Column('script', Integer, ForeignKey(apply_schema('script.id', 'musicbrainz'), name='release_fk_script'))
+    barcode = Column(String(255))
+    comment = Column(String(255), nullable=False, default='', server_default=sql.text("''"))
+    edits_pending = Column(Integer, nullable=False, default=0, server_default=sql.text('0'))
+    quality = Column(SMALLINT, nullable=False, default=-1, server_default=sql.text('-1'))
+    last_updated = Column(DateTime(timezone=True), server_default=sql.func.now())
+
+    artist_credit = relationship('ArtistCredit', foreign_keys=[artist_credit_id], innerjoin=True)
+    release_group = relationship('ReleaseGroup', foreign_keys=[release_group_id], innerjoin=True)
+    status = relationship('ReleaseStatus', foreign_keys=[status_id])
+    #packaging = relationship('ReleasePackaging', foreign_keys=[packaging_id])
+    #language = relationship('Language', foreign_keys=[language_id])
+    #script = relationship('Script', foreign_keys=[script_id])

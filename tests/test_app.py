@@ -1,24 +1,40 @@
-from db import engine
+from db import db
 from sqlalchemy.orm import Session
 from sqlalchemy import event
 
 import pytest
 
-from models import ArtistCreditName, Recording
+from models import ArtistCreditName, Track
 from sqlalchemy import select
 import random
 from app import create_adjacency_list
 
-class TestApp:
+from flask import Flask
+
+from config import Config
+
+class TestApp():
     def setup_method(self, method):
-        # connect to the database
-        self.connection = engine.connect()
+        # create the app
+        self.app = Flask(__name__)
+        # configure the SQLite database, relative to the app instance folder
+        self.app.config["SQLALCHEMY_DATABASE_URI"] = Config.SQLALCHEMY_DATABASE_URI
+        self.app.config["SQLALCHEMY_ECHO"] = True
+        self.app.config["TESTING"] = True
+        # initialize the app with Flask-SQLAlchemy extension
+        db.init_app(self.app)
 
-        # begin a non-ORM transaction
-        self.trans = self.connection.begin()
+        # set app context for testing
+        self.app_context = self.app.app_context()
+        self.app_context.push()
 
+        # # connect to the database
+        self.connection = db.engine.connect()
+        # # begin a non-ORM transaction
+        self.trans = db.engine.begin()
         # bind an individual Session to the connection
-        self.session = Session(bind=self.connection)
+        self.session = db.session(bind=self.connection)
+        # self.session = Session(bind=self.connection)
 
         # starting a savepoint will allow tests to also
         # use rollback within tests
@@ -32,7 +48,7 @@ class TestApp:
     # try 10 random entries in adjacency list and see if I can find record entries of them
     #   as a mini-test
     def test_adjacency_list(self):
-        adj = create_adjacency_list(self.session, 20)
+        adj = create_adjacency_list(20)
 
         artists_to_check = set()
         while len(artists_to_check) < 10:
@@ -56,9 +72,9 @@ class TestApp:
                             .where(ArtistCreditName.artist_id == artist)
                         )
                         stmt = (
-                            select(Recording)
-                            .where(Recording.artist_credit_id.in_(sub_stmt_collab))
-                            .where(Recording.artist_credit_id.in_(sub_stmt_main))
+                            select(Track)
+                            .where(Track.artist_credit_id.in_(sub_stmt_collab))
+                            .where(Track.artist_credit_id.in_(sub_stmt_main))
                         )
 
                         t = self.session.execute(stmt).scalars().all()
@@ -68,6 +84,9 @@ class TestApp:
 
 
     def teardown_method(self):
+        # close app contex
+        self.app_context.pop()
+        # close session
         self.session.close()
 
         # rollback - everything that happened with the
