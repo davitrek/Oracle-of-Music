@@ -2,6 +2,12 @@ from time import sleep
 import requests
 from config import Config
 
+import db_operations
+
+from rapidfuzz import fuzz, utils
+
+import re
+
 # returns access token as dictionary
 def get_spotify_access_token():
     url = 'https://accounts.spotify.com/api/token'
@@ -67,6 +73,78 @@ def search_spotify(url, params=None, max_retries=5):
 
         return response
 
+
+def search_spotify_for_track(track):
+    artists = db_operations.get_track_artists(track)
+    
+    params = {
+        'type': 'track',
+        'q': f'track:{track.name}', #added below
+        'limit': 10
+    }
+
+    assert len(artists) > 0
+    
+    params['q'] = params['q'] + ' artist:'
+    for artist in artists:
+        params['q'] = params['q'] + artist.name + ' '
+
+    params['q'] = params['q'][:-1] #drop extraneous space at end, just in case
+
+
+    # TODO: improve checking that its the same song
+    # could use ISRC (requires import of new 'ISRC' table into DB)
+
+    #check duration is similar or name is same
+    TRACK_LENGTH_TOLERANCE_MS = 2000
+    NAME_RATIO_MIN = 90
+    def track_check_func(result):
+        if track.length:
+            return abs(result['duration_ms'] - track.length) < TRACK_LENGTH_TOLERANCE_MS
+        else:
+            return track_name_similarity_ratio(result['name'], track.name) > NAME_RATIO_MIN
+
+    track = search_spotify_until_found(params, track_check_func, max_pages=2)
+
+    if track:
+        return track
+
+
+def normalise_track_title(title):
+    title = title.lower()
+    title = re.sub(
+    r'[\(\[](?!(?:[^\)\]]*\b(?:mix|live|edit)\b))[^\)\]]*[\)\]]',
+    '',
+    title,
+    flags=re.IGNORECASE
+    )
+
+    return title
+
+
+def track_name_similarity_ratio(title1, title2):
+    title1 = normalise_track_title(title1)
+    title2 = normalise_track_title(title2)
+    
+    return fuzz.WRatio(title1, title2, processor=utils.default_process)
+
+
+def search_spotify_until_found(params, check_func, max_retries=5, max_pages=5):
+    # one (and only one) type to search for must be specified
+    assert len(str(params['type']).split(',')) == 1
+
+    obj_type = params['type']
+
+    for _ in range(max_pages):
+        results = search_spotify(Config.SPOTIFY_SEARCH_URL, params, max_retries)
+        for result in results[f'{obj_type}s']['items']:
+            if check_func(result):
+                return result
+
+        # increase offset for next search
+        params['offset'] = int(params.get('offset', 0)) + int(params.get('limit', 5))
+
+
 def search_spotify_until_found_artist(searched_name, url, params=None, max_retries=5, max_pages=5):
     for _ in range(max_pages):
         params['offset'] = int(params.get('offset', 0)) + int(params.get('limit', 5))
@@ -74,6 +152,13 @@ def search_spotify_until_found_artist(searched_name, url, params=None, max_retri
         for result in results['artists']['items']:
             if result['name'] == searched_name:
                 return result
+
+            
+def get_spotify_artist_by_id(artist_id, max_retries=5):
+    artist_url = f'{Config.SPOTIFY_ARTISTS_URL}/{artist_id}'
+    
+    return search_spotify(artist_url, max_retries=max_retries)
+
 
 def get_albums_of_artist(session, artist_id):
     artist = session.execute(select(Artists).filter_by(id=artist_id)).scalar_one_or_none()

@@ -11,38 +11,73 @@ from db import db
 
 import db_operations
 
+import helpers
 
-def find_collaborated_tracks(path):
-    path_tracks = []
-    for previous, current in zip(path, path[1:]):
-        sub_stmt_collab = (
-            select(ArtistCreditName.artist_credit_id)
-            .where(ArtistCreditName.artist_id == previous.id)
-        )
-        sub_stmt_main = (
-            select(ArtistCreditName.artist_credit_id)
-            .where(ArtistCreditName.artist_id == current.id)
-        )
-        stmt = (
-            select(Recording)
-            .where(Recording.artist_credit_id.in_(sub_stmt_collab))
-            .where(Recording.artist_credit_id.in_(sub_stmt_main))
-        )
-
-        t = db.session.execute(stmt).scalars().all()
-
-        assert len(t) > 0
-
-        path_tracks.append(t[0])
-
-    return path_tracks
+class ArtistImage:
+    non_squareness = 0
+    url = ''
+    height = 0
+    width = 0
 
 
-def find_artist_link_images(path):
-    for artist in path:
+def find_track_link_images(path_spotify_tracks):
+    images = []
+    for spotify_track in path_spotify_tracks:
+        best_image = None
+
+        spotify_track_images = spotify_track['album']['images'] 
+
+        for img in spotify_track_images:
+            if not best_image:
+                best_image = img
+                continue
+            else:
+                best_image = better_squarer_image(best_image, img)
+
+        images.append(best_image['url'])
+
+    return images
+
+
+def find_artist_link_images(path_artists):
+    images = []
+    for artist in path_artists:
+        best_image = None
+
         spotify_id = db_operations.get_artist_spotify_id(artist)
-        # TODO
-        
+        spotify_artist = helpers.get_spotify_artist_by_id(spotify_id)
+        artist_images = spotify_artist['images'] 
+
+        for img in artist_images:
+            if not best_image:
+                best_image = img
+                continue
+            else:
+                best_image = better_squarer_image(best_image, img)
+
+        images.append(best_image['url'])
+
+    return images
+
+
+def better_squarer_image(img1, img2):
+    non_squareness1 = image_non_squareness(img1['height'], img1['width'])
+    non_squareness2 = image_non_squareness(img2['height'], img2['width'])
+
+    if non_squareness1 < non_squareness1:
+        return img1
+    elif non_squareness1 > non_squareness2:
+        return img2
+
+    # images are both same non-squareness, return bigger image:
+    if max(img1['height'], img1['width']) > max(img2['height'], img2['width']):
+        return img1
+    
+    return img2
+
+
+def image_non_squareness(height, width):
+    return (height - width) / max(height, width)
 
 
 # BFS for single connected component

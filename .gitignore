@@ -3,6 +3,7 @@
 .venv
 .vscode
 __pycache__
+favicon
 /comment_out_tables.py
 /downloaded_mbdata
 /mbdump.tar.bz2
@@ -12,3 +13,4 @@ __pycache__
 /scrapednames.txt
 /sql
 /subset_sql
+*.png

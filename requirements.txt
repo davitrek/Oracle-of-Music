@@ -6,3 +6,4 @@ mbdata
 psycopg[binary,pool]
 pytest
 requests
+RapidFuzz

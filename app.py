@@ -16,6 +16,8 @@ import adjacency_list
 
 import find_path
 
+import helpers
+
 valid_track_ids = []
 
 adj_list = defaultdict(set)
@@ -55,101 +57,103 @@ def findpath():
 
 
     path_artists = find_path.find_artist_link(adj_list, artist_start.id, artist_end.id)
-    if path_artists:
-        s = ''
-        path_recordings = find_path.find_collaborated_recordings(path_artists)
-        for recording in path_recordings:
-            s = s + str(recording.name) + '-' + str(recording.artist_credit.name) + '\n\n'
-        print('\n\n\n\n')
-        print(s)
 
-        combined_path = []
+    if not path_artists:
+        return render_template('findpath.html', error='No path found :(')
 
-        for artist, recording in zip(path_artists, path_recordings):
-            combined_path.append({
-                'type': 'artist',
-                'name': artist.name
-            })
-            combined_path.append({
-                'type': 'recording',
-                'name': recording.name,
-                'artist_credit': recording.artist_credit.name
-            })
+    s = ''
+    tracks_bundle = db_operations.find_collaborated_tracks(path_artists)
+    path_tracks = tracks_bundle[0]
+    path_spotify_tracks = tracks_bundle[1]
+    for track in path_tracks:
+        s = s + str(track.name) + '-' + str(track.artist_credit.name) + '\n\n'
+    print('\n\n\n\n')
+    print(s)
 
+    combined_path = []
+
+    for artist, recording in zip(path_artists, path_tracks):
         combined_path.append({
             'type': 'artist',
-            'name': path_artists[-1].name
+            'name': artist.name
+        })
+        combined_path.append({
+            'type': 'recording',
+            'name': recording.name,
+            'artist_credit': recording.artist_credit.name
         })
 
-        pad = 0
-        svg_width = 1000
-        svg_height = 200
-        #circle_radius = (svg_width - 2 * pad) / (3 * len(path_artists) - 2)
-        circle_radius = 50
-        line_length = 25
-        square_size = round(3/2 * circle_radius)
+    combined_path.append({
+        'type': 'artist',
+        'name': path_artists[-1].name
+    })
 
-        circle_centres = []
-        for i in range(len(path_artists)):
-            circle_centres.append(svg_width / (2 * len(path_artists)) * (2 * i + 1))
+    pad = 0
+    svg_width = 1000
+    svg_height = 200
+    #circle_radius = (svg_width - 2 * pad) / (3 * len(path_artists) - 2)
+    circle_radius = 50
+    line_length = 25
+    square_size = round(3/2 * circle_radius)
 
-        square_centres = []
-        for previous, current in zip(circle_centres, circle_centres[1:]):
-            square_centres.append((current + previous) / 2)
+    circle_centres = []
+    for i in range(len(path_artists)):
+        circle_centres.append(svg_width / (2 * len(path_artists)) * (2 * i + 1))
 
-        square_left_edges = []
-        for square in square_centres:
-            square_left_edges.append(square - square_size / 2)
+    square_centres = []
+    for previous, current in zip(circle_centres, circle_centres[1:]):
+        square_centres.append((current + previous) / 2)
 
-        # square_positions = []
-        # for previous, current in zip(circle_positions, circle_positions[1:]):
-        #     square_positions.append((current + previous) / 2 - square_size / 2)
-        
-        # line_positions = []
-        # for i in range(len(path_artists) - 1):
-        #     line_positions.append((circle_positions[i] + circle_radius, circle_positions[i + 1] - circle_radius))
+    square_left_edges = []
+    for square in square_centres:
+        square_left_edges.append(square - square_size / 2)
 
-        line_positions = []
-        for circle_first_pos, square_pos, circle_second_pos in zip(circle_centres, square_centres, circle_centres[1:]):
-            line_positions.append((circle_first_pos + circle_radius, square_pos - square_size / 2))
-            line_positions.append((square_pos + square_size / 2, circle_second_pos - circle_radius))
-
-        artist_name_location = []
-        for name, location in zip(path_artists, circle_centres):
-            artist_name_location.append((name.name, location))
-
-        recording_name_location = []
-        for name, location in zip(path_recordings, square_centres):
-            recording_name_location.append((name.name, location))
-
+    # square_positions = []
+    # for previous, current in zip(circle_positions, circle_positions[1:]):
+    #     square_positions.append((current + previous) / 2 - square_size / 2)
     
-        # artist_images = []
-        # for artist, recording in zip(path_artists, path_recordings):
-        #     search_params = {
-        #         #'q': f'artist:{artist.name} track:{recording.name}',
-        #         'q': f'{artist.name}',
-        #         'type': 'artist',
-        #         'limit': '10'
-        #     }
-        #     result = helpers.search_spotify_until_found_artist(artist.name, Config.SPOTIFY_SEARCH_URL, search_params)
-        #     artist_images.append(result['images'])
+    # line_positions = []
+    # for i in range(len(path_artists) - 1):
+    #     line_positions.append((circle_positions[i] + circle_radius, circle_positions[i + 1] - circle_radius))
 
-        return render_template(
-            'findpath.html',
-            svg_width=svg_width,
-            svg_height=svg_height,
-            path=combined_path,
-            circle_radius=circle_radius,
-            circle_positions=circle_centres,
-            square_positions=square_left_edges,
-            square_size=square_size,
-            line_positions=line_positions,
-            artist_name_location=artist_name_location,
-            recording_name_location=recording_name_location,
-        )
+    line_positions = []
+    for circle_first_pos, square_pos, circle_second_pos in zip(circle_centres, square_centres, circle_centres[1:]):
+        line_positions.append((circle_first_pos + circle_radius, square_pos - square_size / 2))
+        line_positions.append((square_pos + square_size / 2, circle_second_pos - circle_radius))
 
-    else:
-        return render_template('findpath.html', error='No path found :(')
+    artist_name_location = []
+    for name, location in zip(path_artists, circle_centres):
+        artist_name_location.append((name.name, location))
+
+    recording_name_location = []
+    for name, location in zip(path_tracks, square_centres):
+        recording_name_location.append((name.name, location))
+
+    artist_images = find_path.find_artist_link_images(path_artists)
+    artist_shapes = []
+    for img, circle_pos, i in zip(artist_images, circle_centres, range(len(artist_images))):
+        artist_shapes.append((img, circle_pos, i))
+
+    track_images = find_path.find_track_link_images(path_spotify_tracks)
+    track_shapes = []
+    for img, square_pos, i in zip(track_images, square_left_edges, range(len(track_images))):
+        track_shapes.append((img, square_pos, i))
+        
+    return render_template(
+        'findpath.html',
+        svg_width=svg_width,
+        svg_height=svg_height,
+        path=combined_path,
+        circle_radius=circle_radius,
+        artist_shapes=artist_shapes,
+        square_positions=square_left_edges,
+        square_size=square_size,
+        line_positions=line_positions,
+        artist_name_location=artist_name_location,
+        recording_name_location=recording_name_location,
+        track_shapes=track_shapes,
+    )
+
 
 
 
@@ -159,7 +163,7 @@ with app.app_context():
 
     tst = db_operations.get_artist_spotify_id(artist)
         
-    # adj_list = adjacency_list.init_adjacency_list(count)
+    adj_list = adjacency_list.init_adjacency_list(count)
 
-    #Config.SPOTIFY_ACCESS_TOKEN = helpers.get_spotify_access_token()
-    #Config.AUTHORISATION_HEADER['Authorization'] = f'Bearer {Config.SPOTIFY_ACCESS_TOKEN}'
+    Config.SPOTIFY_ACCESS_TOKEN = helpers.get_spotify_access_token()
+    Config.AUTHORISATION_HEADER['Authorization'] = f'Bearer {Config.SPOTIFY_ACCESS_TOKEN}'

@@ -18,6 +18,8 @@ from db import db
 
 import re
 
+import helpers
+
 
 def get_artist_name_from_list(line_number):
     with open(Config.SCRAPED_NAMES_FILE_PATH) as f:
@@ -258,39 +260,23 @@ def get_artist_collaborators(artist_ids):
     # -> release_group_primary_type - to filter for IN (Album, Single, EP)
     # -> release_status - to filter for = Official
     
-    valid_release_primary_types = ['Album', 'Single', 'EP']
-    valid_release_secondary_types = ['Soundtrack', 'Mixtape/Street', 'Demo']
-    official_status = 'Official'
-    
     stmt = (
         select(artist_target.id, artist_collab.id)
         # --- target artist lookup ---
         .select_from(artist_target)
         .where(artist_target.id.in_(artist_ids))
         .join(acn_target,  acn_target.artist_id == artist_target.id)
-        # --- connectors ---
+        # --- connector ---
         .join(ArtistCredit,     ArtistCredit.id == acn_target.artist_credit_id)
-        .join(Track,     Track.artist_credit_id == ArtistCredit.id)
-        .join(Medium,                 Medium.id == Track.medium_id)
-        .join(Release,               Release.id == Medium.release_id)
-        .join(ReleaseGroup,     ReleaseGroup.id == Release.release_group_id)
-        # --- filters ---
-        .join(ReleaseGroupPrimaryType, ReleaseGroupPrimaryType.id == ReleaseGroup.type_id)
-        .where(ReleaseGroupPrimaryType.name.in_(valid_release_primary_types))
-        .join(ReleaseStatus,                     ReleaseStatus.id == Release.status_id)
-        .where(ReleaseStatus.name == official_status)
-        .join(ReleaseGroupSecondaryTypeJoin, ReleaseGroupSecondaryTypeJoin.release_group_id == ReleaseGroup.id, isouter=True)
-        .join(ReleaseGroupSecondaryType, ReleaseGroupSecondaryType.id == ReleaseGroupSecondaryTypeJoin.secondary_type_id, isouter=True)
-        .where(
-            (ReleaseGroupSecondaryType.name.in_(valid_release_secondary_types))
-        # do not exclude albums without a secondary type
-            | (ReleaseGroupSecondaryType.name == None)
-        )
         # --- collab artist lookup ---
         .join(acn_collab,             acn_collab.artist_credit_id == ArtistCredit.id)
         .join(artist_collab,                     artist_collab.id == acn_collab.artist_id)
         .where(artist_collab.id != artist_target.id)
+        # --- to allow filtering ---
+        .join(Track,     Track.artist_credit_id == ArtistCredit.id)
     )
+
+    stmt = filter_tracks_for_official(stmt)
     
     artist_collabs_list = db.session.execute(stmt).all()
 
@@ -340,3 +326,105 @@ def get_artist_spotify_id(artist):
             return r[0]
 
     return None
+
+# filter tracks to try remove illegitimate musicbrainz entries
+def filter_tracks_for_official(stmt):
+    # (track filters for officialness)
+    # -> medium
+    # -> release
+    # -> release_group
+    # -> release_group_primary_type - to filter for IN (Album, Single, EP)
+    # -> release_status - to filter for = Official
+
+    valid_release_primary_types = ['Album', 'Single', 'EP']
+    valid_release_secondary_types = ['Soundtrack', 'Mixtape/Street', 'Demo']
+    official_status = 'Official'
+
+    new_stmt = (
+        stmt
+        .join(Medium,                 Medium.id == Track.medium_id)
+        .join(Release,               Release.id == Medium.release_id)
+        .join(ReleaseGroup,     ReleaseGroup.id == Release.release_group_id)
+        .join(ReleaseGroupPrimaryType, ReleaseGroupPrimaryType.id == ReleaseGroup.type_id)
+        .where(ReleaseGroupPrimaryType.name.in_(valid_release_primary_types))
+        .join(ReleaseStatus,                     ReleaseStatus.id == Release.status_id)
+        .where(ReleaseStatus.name == official_status)
+        .join(ReleaseGroupSecondaryTypeJoin, ReleaseGroupSecondaryTypeJoin.release_group_id == ReleaseGroup.id, isouter=True)
+        .join(ReleaseGroupSecondaryType, ReleaseGroupSecondaryType.id == ReleaseGroupSecondaryTypeJoin.secondary_type_id, isouter=True)
+        .where(
+            (ReleaseGroupSecondaryType.name.in_(valid_release_secondary_types))
+        # do not exclude albums without a secondary type
+            | (ReleaseGroupSecondaryType.name == None))
+    )
+
+    return new_stmt
+
+
+def find_collaborated_tracks(path):
+    acn_target = aliased(ArtistCreditName)
+    acn_collab = aliased(ArtistCreditName)
+    artist_target = aliased(Artist)
+    artist_collab = aliased(Artist)
+    
+    # track
+    # -> (track filters for containing both artists)
+    # -> (track filters for officialness)
+    
+    
+    # (track filters for containing both artists)
+    # -> artist_credit
+    # -> artist_credit_name, target
+    # -> artist, target -> id == artist_id
+    # -> artist_credit_name, collab
+    # -> artist, collab -> id == collab_id
+
+    path_tracks = []
+    path_spotify_tracks = []
+    for artist, collab in zip(path, path[1:]):
+        stmt = (
+            select(Track)
+            # --- target artist lookup ---
+            .select_from(artist_target)
+            .where(artist_target.id == artist.id)
+            .join(acn_target,  acn_target.artist_id == artist_target.id)
+            # --- connectors ---
+            .join(ArtistCredit,     ArtistCredit.id == acn_target.artist_credit_id)
+            # --- collab artist lookup ---
+            .join(acn_collab,             acn_collab.artist_credit_id == ArtistCredit.id)
+            .join(artist_collab,                     artist_collab.id == acn_collab.artist_id)
+            .where(artist_collab.id == collab.id)
+            # --- to get tracks ---
+            .join(Track,     Track.artist_credit_id == ArtistCredit.id)
+        )
+
+        stmt = filter_tracks_for_official(stmt)
+        
+        tracks = db.session.execute(stmt).scalars().all()
+
+        assert len(tracks) > 0
+
+        for track in tracks:
+            spotify_track = helpers.search_spotify_for_track(track)
+            if spotify_track:
+                path_tracks.append(track)
+                path_spotify_tracks.append(spotify_track)
+                break
+        else:
+            assert 0 # no tracks in MusicBrainz DB could be found on Spotify!
+            path_tracks.append(track)
+            path_spotify_tracks.append(None)
+
+    
+    return (path_tracks, path_spotify_tracks)
+
+def get_track_artists(track):
+    stmt = (
+        select(Artist)
+        .select_from(Track)
+        .where(Track.id == track.id)
+        .join(ArtistCredit, ArtistCredit.id == Track.artist_credit_id)
+        .join(ArtistCreditName, ArtistCreditName.artist_credit_id == ArtistCredit.id)
+        .join(Artist, Artist.id == ArtistCreditName.artist_id)
+    )
+
+    return db.session.execute(stmt).scalars().all()

@@ -210,14 +210,6 @@ class Recording(db.Model):
 
     artist_credit = relationship('ArtistCredit', foreign_keys=[artist_credit_id], innerjoin=True)
     
-    # DT additions
-
-    #                     local column name               what it's a foreign key to    name of constraint
-    #link_type_id = Column('link_type', Integer, ForeignKey('musicbrainz.link_type.id', name='link_fk_link_type'), nullable=False)
-    
-    #                       Related class           foreign key that joins them   V- is faster but only works for one-to-one or many-to-one  
-    #link_type = relationship('LinkType', foreign_keys=[link_type_id], innerjoin=True)
-    
     
 class LinkArtistRecording(db.Model):
     __tablename__ = 'l_artist_recording'
