@@ -1,24 +1,34 @@
-from config import Config
-
-from models import Artist, ArtistAlias, Recording, ArtistCredit, ArtistCreditName, Track, ReleaseStatus, Release, Medium, ReleaseGroup, ReleaseGroupPrimaryType, ReleaseGroupSecondaryType, ReleaseGroupSecondaryTypeJoin, URL, LinkArtistURL, Link, LinkType
-from sqlalchemy.orm import aliased
-from sqlalchemy import select, func
-
-#from sqlalchemy.dialects.postgresql import insert
-
-from collections import defaultdict
-
-from config import Config
-
-import sqlalchemy.exc
-
-from time import time
-
-from db import db
-
 import re
 
-import helpers
+# from sqlalchemy.dialects.postgresql import insert
+from collections import defaultdict
+
+# from time import time
+# import sqlalchemy.exc
+from sqlalchemy import func, select
+from sqlalchemy.orm import aliased
+
+from config import Config
+from db import db
+from models import (
+    URL,
+    Artist,
+    ArtistAlias,
+    ArtistCredit,
+    ArtistCreditName,
+    Link,
+    LinkArtistURL,
+    LinkType,
+    Medium,
+    Recording,
+    Release,
+    ReleaseGroup,
+    ReleaseGroupPrimaryType,
+    ReleaseGroupSecondaryType,
+    ReleaseGroupSecondaryTypeJoin,
+    ReleaseStatus,
+    Track,
+)
 
 
 def get_artist_name_from_list(line_number):
@@ -30,10 +40,7 @@ def get_artist_name_from_list(line_number):
 
 
 def get_db_artist_by_id(id):
-    stmt = (
-        select(Artist)
-        .where(Artist.id == id)
-    )
+    stmt = select(Artist).where(Artist.id == id)
 
     search_result = db.session.execute(stmt).scalar_one_or_none()
 
@@ -42,10 +49,18 @@ def get_db_artist_by_id(id):
 
 # returns None if no artist could be found
 def get_db_artist_by_name(name):
+    # NOTE: searching for hits on Artist.name, and only searching for hits on
+    #       ArtistAlias.name could give incorrect results (see example below)
+    #       however, it's done this way because it's A LOT faster than
+    #       doing a JOIN and searching for both at the same time
+
+    #       e.g.: Kanye West doesn't exist in MBDB, found instead under 'Ye'.
+    #       if there's a different 'Kanye West' (not Ye) in MBDB, it would
+    #       grab them instead as the artist
     # search by artist name
-    stmt = (
-        select(Artist)
-        .where(Artist.name == name)
+    stmt = select(Artist).where(
+        func.lower(func.musicbrainz_unaccent(Artist.name))
+        == func.lower(func.musicbrainz_unaccent(name))
     )
 
     search_result = db.session.execute(stmt).scalars().all()
@@ -55,16 +70,16 @@ def get_db_artist_by_name(name):
     if not search_result:
         sub_stmt = (
             select(ArtistAlias.artist_id)
-            # using lower(musicbrainz_unaccent(name)) index on ArtistAlias 
-            .where(func.lower(func.musicbrainz_unaccent(ArtistAlias.name)) == func.lower(func.musicbrainz_unaccent(name)))
+            # using lower(musicbrainz_unaccent(name)) index on ArtistAlias
+            .where(
+                func.lower(func.musicbrainz_unaccent(ArtistAlias.name))
+                == func.lower(func.musicbrainz_unaccent(name))
+            )
         )
-        stmt = (
-            select(Artist)
-            .where(Artist.id.in_(sub_stmt))
-        )
+        stmt = select(Artist).where(Artist.id.in_(sub_stmt))
 
         search_result = db.session.execute(stmt).scalars().all()
-    
+
     if len(search_result) == 1:
         artist = search_result[0]
         return artist
@@ -77,13 +92,12 @@ def get_db_artist_by_name(name):
 def filter_db_artists(search_results, name):
     possible_artists = search_results
 
-    
     # multiple artists found, try filter by which one has an 'area_id'
     has_area_id = []
     for artist_result in possible_artists:
         if artist_result.area_id != None:
             has_area_id.append(artist_result)
-    
+
     if len(has_area_id) == 1:
         artist = has_area_id[0]
         return artist
@@ -97,7 +111,7 @@ def filter_db_artists(search_results, name):
     for artist_result in possible_artists:
         if artist_result.begin_date_year != None:
             has_begin_year.append(artist_result)
-    
+
     if len(has_begin_year) == 1:
         artist = has_begin_year[0]
         return artist
@@ -106,12 +120,26 @@ def filter_db_artists(search_results, name):
     elif len(has_begin_year) > 1:
         possible_artists = has_begin_year
 
+    # multiple artists still in running. try searching for which of these has a
+    # linked Spotify page
+    has_spotify_page = []
+    for artist_result in possible_artists:
+        if get_artist_spotify_id(artist_result):
+            has_spotify_page.append(artist_result)
+
+    if len(has_spotify_page) == 1:
+        return has_spotify_page[0]
+    # if there are multiple artists with a begin year, assume one I'm searching
+    #   for is within that list, only continue filtering through those
+    elif len(has_spotify_page) > 1:
+        possible_artists = has_spotify_page
+
     # multiple or no artists found filtering by begin year. filter by begin_area
     has_begin_area = []
     for artist_result in possible_artists:
         if artist_result.begin_area_id != None:
             has_begin_area.append(artist_result)
-    
+
     if len(has_begin_area) == 1:
         artist = has_begin_area[0]
         return artist
@@ -129,6 +157,10 @@ def filter_db_artists(search_results, name):
     if len(has_begin_month) == 1:
         artist = has_begin_month[0]
         return artist
+    # if there are multiple artists with a begin month, assume one I'm searching
+    #   for is within that list, only continue filtering through those
+    elif len(has_begin_month) > 1:
+        possible_artists = has_begin_month
 
     # see if any of the search_results' Artist.name is name (i.e., select ones
     #   that were NOT found via an alias)
@@ -136,7 +168,7 @@ def filter_db_artists(search_results, name):
     for artist_result in possible_artists:
         if artist_result.name == name:
             has_searched_for_name.append(artist_result)
-    
+
     if len(has_searched_for_name) == 1:
         artist = has_searched_for_name[0]
         return artist
@@ -163,9 +195,8 @@ def filter_db_artists(search_results, name):
 
 
 def get_artist_recordings(artist):
-    sub_sub_stmt = (
-        select(ArtistCreditName.artist_credit_id)
-        .where(ArtistCreditName.artist == artist)
+    sub_sub_stmt = select(ArtistCreditName.artist_credit_id).where(
+        ArtistCreditName.artist == artist
     )
 
     # these are all artist_credit rows with my artist that have collaborators
@@ -175,10 +206,7 @@ def get_artist_recordings(artist):
         .where(ArtistCredit.artist_count > 1)
     )
 
-    stmt = (
-        select(Recording)
-         .where(Recording.artist_credit_id.in_(sub_stmt))
-    )
+    stmt = select(Recording).where(Recording.artist_credit_id.in_(sub_stmt))
 
     return db.session.execute(stmt).scalars().all()
 
@@ -189,18 +217,18 @@ def get_artist_recordings(artist):
 #     # need to review whether filtering ReleaseGroupPrimaryType is even worthwhile
 #     stmt = (
 #         select(ReleaseGroupPrimaryType.id)
-#         .where((ReleaseGroupPrimaryType.name == 'Album') 
-#                | (ReleaseGroupPrimaryType.name == 'Single') 
+#         .where((ReleaseGroupPrimaryType.name == 'Album')
+#                | (ReleaseGroupPrimaryType.name == 'Single')
 #                | (ReleaseGroupPrimaryType.name == 'EP'))
 #     )
 #     release_group_primary_type_ids = db.session.execute(stmt).scalars().all()
-# 
+#
 #     stmt = (
 #         select(ReleaseStatus.id)
 #         .where(ReleaseStatus.name == 'Official')
 #     )
 #     official_release_status_id = db.session.execute(stmt).scalar_one()
-# 
+#
 #     tc0 = time()
 #     release_group_stmt = (
 #         select(ReleaseGroup.id)
@@ -209,7 +237,7 @@ def get_artist_recordings(artist):
 #     tmp = db.session.execute(release_group_stmt).scalars().all()
 #     tc1 = time()
 #     ttc = tc1 - tc0
-#     
+#
 #     td0 = time()
 #     release_stmt = (
 #         select(Release.id)
@@ -219,7 +247,7 @@ def get_artist_recordings(artist):
 #     tmp = db.session.execute(release_stmt).scalars().all()
 #     td1 = time()
 #     ttd = td1 - td0
-# 
+#
 #     te0 = time()
 #     stmt = (
 #         select(Track.id)
@@ -229,28 +257,28 @@ def get_artist_recordings(artist):
 #     s = db.session.execute(stmt).scalars().all()
 #     te1 = time()
 #     tte = te1 - te0
-# 
+#
 #     return s
 
 
 # ALTERNATIVE ALTERNATIVE. this one uses track table instead of recording table
 # get all tracks with collaborators where artist is credited, adding them to a list
 #   each list entry should have the collaborator id and recording id
-#   if there is at least one track in that list, create entry in adjacency_list 
+#   if there is at least one track in that list, create entry in adjacency_list
 #   -> {id_of artist in artist table: adjacent nodes list}
 def get_artist_collaborators(artist_ids):
     acn_target = aliased(ArtistCreditName)
     acn_collab = aliased(ArtistCreditName)
     artist_target = aliased(Artist)
     artist_collab = aliased(Artist)
-    
+
     # artist_target
     # -> acn_target
     # -> artist_credit
     # ... (connections & filters)
     # -> acn_collab
     # -> artist_collab
-    
+
     # (connections & filters)
     # -> artist_credit
     # -> track
@@ -259,25 +287,25 @@ def get_artist_collaborators(artist_ids):
     # -> release_group
     # -> release_group_primary_type - to filter for IN (Album, Single, EP)
     # -> release_status - to filter for = Official
-    
+
     stmt = (
         select(artist_target.id, artist_collab.id)
         # --- target artist lookup ---
         .select_from(artist_target)
         .where(artist_target.id.in_(artist_ids))
-        .join(acn_target,  acn_target.artist_id == artist_target.id)
+        .join(acn_target, acn_target.artist_id == artist_target.id)
         # --- connector ---
-        .join(ArtistCredit,     ArtistCredit.id == acn_target.artist_credit_id)
+        .join(ArtistCredit, ArtistCredit.id == acn_target.artist_credit_id)
         # --- collab artist lookup ---
-        .join(acn_collab,             acn_collab.artist_credit_id == ArtistCredit.id)
-        .join(artist_collab,                     artist_collab.id == acn_collab.artist_id)
+        .join(acn_collab, acn_collab.artist_credit_id == ArtistCredit.id)
+        .join(artist_collab, artist_collab.id == acn_collab.artist_id)
         .where(artist_collab.id != artist_target.id)
         # --- to allow filtering ---
-        .join(Track,     Track.artist_credit_id == ArtistCredit.id)
+        .join(Track, Track.artist_credit_id == ArtistCredit.id)
     )
 
     stmt = filter_tracks_for_official(stmt)
-    
+
     artist_collabs_list = db.session.execute(stmt).all()
 
     adj = defaultdict(set)
@@ -287,30 +315,22 @@ def get_artist_collaborators(artist_ids):
     return adj
 
 
-def get_artist_name_from_list(line_number):
-    with open(Config.SCRAPED_NAMES_FILE_PATH) as f:
-        for i, line in enumerate(f):
-            if i == line_number - 1:
-                return line[:-1]
-    return None
-
-
-def get_artist_spotify_id(artist):
+def get_artist_spotify_id(artist: Artist) -> str | None:
     # URL
     # -> l_artist_url
     # -> (filters)
     # -> artist, id = artist(passed in parameter).id
-    
+
     # filters:
     # -> link
     # -> link_type = 'free streaming'
-    
+
     stmt = (
         select(URL)
         .join(LinkArtistURL, LinkArtistURL.url_id == URL.id)
         .join(Link, Link.id == LinkArtistURL.link_id)
         .join(LinkType, LinkType.id == Link.link_type_id)
-        .where(LinkType.name == 'free streaming')
+        .where(LinkType.name == "free streaming")
         .join(Artist)
         .where(Artist.id == artist.id)
     )
@@ -321,11 +341,12 @@ def get_artist_spotify_id(artist):
     #       e.g., Kanye has 3 spotify links - one for Kanye West account, one
     #       for Ye account, and one for DONDA account
     for url in urls:
-        if 'spotify' in url.url:
-            r = re.findall(r'artist\/([^\/]*)', url.url)
+        if "spotify" in url.url:
+            r = re.findall(r"artist\/([^\/]*)", url.url)
             return r[0]
 
     return None
+
 
 # filter tracks to try remove illegitimate musicbrainz entries
 def filter_tracks_for_official(stmt):
@@ -336,41 +357,53 @@ def filter_tracks_for_official(stmt):
     # -> release_group_primary_type - to filter for IN (Album, Single, EP)
     # -> release_status - to filter for = Official
 
-    valid_release_primary_types = ['Album', 'Single', 'EP']
-    valid_release_secondary_types = ['Soundtrack', 'Mixtape/Street', 'Demo']
-    official_status = 'Official'
+    valid_release_primary_types = ["Album", "Single", "EP"]
+    valid_release_secondary_types = ["Soundtrack", "Mixtape/Street", "Demo"]
+    official_status = "Official"
 
     new_stmt = (
-        stmt
-        .join(Medium,                 Medium.id == Track.medium_id)
-        .join(Release,               Release.id == Medium.release_id)
-        .join(ReleaseGroup,     ReleaseGroup.id == Release.release_group_id)
-        .join(ReleaseGroupPrimaryType, ReleaseGroupPrimaryType.id == ReleaseGroup.type_id)
+        stmt.join(Medium, Medium.id == Track.medium_id)
+        .join(Release, Release.id == Medium.release_id)
+        .join(ReleaseGroup, ReleaseGroup.id == Release.release_group_id)
+        .join(
+            ReleaseGroupPrimaryType,
+            ReleaseGroupPrimaryType.id == ReleaseGroup.type_id,
+        )
         .where(ReleaseGroupPrimaryType.name.in_(valid_release_primary_types))
-        .join(ReleaseStatus,                     ReleaseStatus.id == Release.status_id)
+        .join(ReleaseStatus, ReleaseStatus.id == Release.status_id)
         .where(ReleaseStatus.name == official_status)
-        .join(ReleaseGroupSecondaryTypeJoin, ReleaseGroupSecondaryTypeJoin.release_group_id == ReleaseGroup.id, isouter=True)
-        .join(ReleaseGroupSecondaryType, ReleaseGroupSecondaryType.id == ReleaseGroupSecondaryTypeJoin.secondary_type_id, isouter=True)
+        .join(
+            ReleaseGroupSecondaryTypeJoin,
+            ReleaseGroupSecondaryTypeJoin.release_group_id == ReleaseGroup.id,
+            isouter=True,
+        )
+        .join(
+            ReleaseGroupSecondaryType,
+            ReleaseGroupSecondaryType.id
+            == ReleaseGroupSecondaryTypeJoin.secondary_type_id,
+            isouter=True,
+        )
         .where(
             (ReleaseGroupSecondaryType.name.in_(valid_release_secondary_types))
-        # do not exclude albums without a secondary type
-            | (ReleaseGroupSecondaryType.name == None))
+            # do not exclude albums without a secondary type
+            | (ReleaseGroupSecondaryType.name == None)
+        )
     )
 
     return new_stmt
 
 
-def find_collaborated_tracks(path):
+# returns MusicBrainz database Track objects that have both artists credited
+def fetch_collaborated_tracks(artist_id1, artist_id2):
     acn_target = aliased(ArtistCreditName)
     acn_collab = aliased(ArtistCreditName)
     artist_target = aliased(Artist)
     artist_collab = aliased(Artist)
-    
+
     # track
     # -> (track filters for containing both artists)
     # -> (track filters for officialness)
-    
-    
+
     # (track filters for containing both artists)
     # -> artist_credit
     # -> artist_credit_name, target
@@ -378,44 +411,30 @@ def find_collaborated_tracks(path):
     # -> artist_credit_name, collab
     # -> artist, collab -> id == collab_id
 
-    path_tracks = []
-    path_spotify_tracks = []
-    for artist, collab in zip(path, path[1:]):
-        stmt = (
-            select(Track)
-            # --- target artist lookup ---
-            .select_from(artist_target)
-            .where(artist_target.id == artist.id)
-            .join(acn_target,  acn_target.artist_id == artist_target.id)
-            # --- connectors ---
-            .join(ArtistCredit,     ArtistCredit.id == acn_target.artist_credit_id)
-            # --- collab artist lookup ---
-            .join(acn_collab,             acn_collab.artist_credit_id == ArtistCredit.id)
-            .join(artist_collab,                     artist_collab.id == acn_collab.artist_id)
-            .where(artist_collab.id == collab.id)
-            # --- to get tracks ---
-            .join(Track,     Track.artist_credit_id == ArtistCredit.id)
-        )
+    stmt = (
+        select(Track)
+        # --- target artist lookup ---
+        .select_from(artist_target)
+        .where(artist_target.id == artist_id1)
+        .join(acn_target, acn_target.artist_id == artist_target.id)
+        # --- connectors ---
+        .join(ArtistCredit, ArtistCredit.id == acn_target.artist_credit_id)
+        # --- collab artist lookup ---
+        .join(acn_collab, acn_collab.artist_credit_id == ArtistCredit.id)
+        .join(artist_collab, artist_collab.id == acn_collab.artist_id)
+        .where(artist_collab.id == artist_id2)
+        # --- to get tracks ---
+        .join(Track, Track.artist_credit_id == ArtistCredit.id)
+    )
 
-        stmt = filter_tracks_for_official(stmt)
-        
-        tracks = db.session.execute(stmt).scalars().all()
+    stmt = filter_tracks_for_official(stmt)
 
-        assert len(tracks) > 0
+    tracks = db.session.execute(stmt).scalars().all()
 
-        for track in tracks:
-            spotify_track = helpers.search_spotify_for_track(track)
-            if spotify_track:
-                path_tracks.append(track)
-                path_spotify_tracks.append(spotify_track)
-                break
-        else:
-            assert 0 # no tracks in MusicBrainz DB could be found on Spotify!
-            path_tracks.append(track)
-            path_spotify_tracks.append(None)
+    assert len(tracks) > 0
 
-    
-    return (path_tracks, path_spotify_tracks)
+    return tracks
+
 
 def get_track_artists(track):
     stmt = (
@@ -423,7 +442,10 @@ def get_track_artists(track):
         .select_from(Track)
         .where(Track.id == track.id)
         .join(ArtistCredit, ArtistCredit.id == Track.artist_credit_id)
-        .join(ArtistCreditName, ArtistCreditName.artist_credit_id == ArtistCredit.id)
+        .join(
+            ArtistCreditName,
+            ArtistCreditName.artist_credit_id == ArtistCredit.id,
+        )
         .join(Artist, Artist.id == ArtistCreditName.artist_id)
     )
 

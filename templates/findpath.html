@@ -1,7 +1,7 @@
 {% extends "layout.html" %}
 
 {% block title %}
-    Buy Stocks
+  Find path
 {% endblock %}
 
 {% block main %}
@@ -20,30 +20,50 @@
     <p style="color:red;">{{ error }}</p>
   {% endif %}
   
-  {% if path %}
+  {% if True %}
     <svg
       viewBox="0 0 {{ svg_width }} {{ svg_height }}"
       xmlns="http://www.w3.org/2000/svg"
       height="200"
       width="100%">
-      {% for img,circle_position,i in artist_shapes %}
+      {% for artistinfo,circle_position,i in artist_shapes %}
         <defs>
           <pattern id="artistImg{{ i }}" patternUnits="objectBoundingBox" width="1" height="1">
-            <image href="{{ img }}" x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid slice"/>
+            <image href="{{ artistinfo.picture.url }}" x="0" y="0" width="{{ 2 * circle_radius }}" height="{{ 2 * circle_radius }}" preserveAspectRatio="xMidYMid slice"/>
           </pattern>
         </defs>
+
+        {% if artistinfo.spotify_id %}
+          <a href="{{ spotify_artist_url }}/{{ artistinfo.spotify_id }}">
+        {% endif %}
 
         <circle cx="{{ circle_position }}" cy="100" r="{{ circle_radius }}" stroke = "black" stroke-width="3" fill="url(#artistImg{{ i }})"/>
+
+        {% if artistinfo.spotify_id %}
+        </a>
+        {% endif %}
       {% endfor %}
 
-      {% for img,square_position,i in track_shapes %}
+      {% for trackinfo,square_position,i in track_shapes %}
         <defs>
           <pattern id="trackImg{{ i }}" patternUnits="objectBoundingBox" width="1" height="1">
-            <image href="{{ img }}" x="0" y="0" width="{{ square_size }}" height="{{ square_size }}" preserveAspectRatio="xMidYMid slice"/>
+            {% if trackinfo.album_art %}
+              <image href="{{ trackinfo.album_art.url }}" x="0" y="0" width="{{ square_size }}" height="{{ square_size }}" preserveAspectRatio="xMidYMid slice"/>
+            {% else %}
+              <image href="{{ url_for('static', filename='images/missing_album_art.png') }}" x="0" y="0" width="{{ square_size }}" height="{{ square_size }}" preserveAspectRatio="xMidYMid slice"/>
+            {% endif %}
           </pattern>
         </defs>
+        
+        {% if trackinfo.spotify_id %}
+          <a href="{{ spotify_track_url }}/{{ trackinfo.spotify_id }}">
+        {% endif %}
 
         <rect x="{{ square_position }}" y="{{ 100-square_size / 2 }}" width="{{ square_size }}" height="{{ square_size }}" fill="url(#trackImg{{ i }})" stroke = "black" stroke-width="3"/>
+
+        {% if trackinfo.spotify_id %}
+          </a>
+        {% endif %}
       {% endfor %}
       {% for line_position_1, line_position_2 in line_positions %}
         <line x1="{{ line_position_1 }}" y1="100" x2="{{ line_position_2 }}" y2="100" stroke="black" stroke-width="3"/>
