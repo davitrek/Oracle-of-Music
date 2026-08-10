@@ -1,0 +1,165 @@
+/* ===== 1. Global theme tokens ===== */
+:root {
+  --accent: #c2410c;        /* burnt orange */
+  --accent-hover: #ea580c;  /* lighter orange, for :hover states */
+  --accent-rgb: 194, 65, 12; /* same color as R,G,B - used in rgba() for focus glow */
+  --surface: #181818;
+  --surface-hover: #282828;
+  --text-primary: #ffffff;
+  --text-secondary: #a7a7a7;
+  --line-color: #4c4c4c;
+}
+
+/* ===== 2. Page-wide dark theme (this part DOES work via root vars) ===== */
+[data-bs-theme="dark"] {
+  --bs-body-bg: #0a0a0c;
+  --bs-body-color: #ffffff;
+  --bs-border-color: var(--surface-hover);
+}
+
+/* ===== 3. Navbar (local vars only cover text; bg set separately) ===== */
+.navbar {
+  background-color: var(--surface);
+  --bs-navbar-brand-color: #ffffff;
+  --bs-navbar-color: var(--text-secondary);
+  --bs-navbar-hover-color: var(--accent);
+  --bs-navbar-active-color: var(--accent);
+}
+
+/* ===== 4. Buttons - must override .btn-primary's own local vars ===== */
+.btn-primary {
+  --bs-btn-bg: var(--accent);
+  --bs-btn-border-color: var(--accent);
+  --bs-btn-hover-bg: var(--accent-hover);
+  --bs-btn-hover-border-color: var(--accent-hover);
+  --bs-btn-active-bg: var(--accent-hover);
+  --bs-btn-active-border-color: var(--accent-hover);
+  --bs-btn-focus-shadow-rgb: var(--accent-rgb); /* the focus glow ring color */
+  --bs-btn-disabled-bg: var(--accent);
+  --bs-btn-disabled-border-color: var(--accent);
+}
+
+/* ===== 5. Form controls - same story, override directly ===== */
+.form-control {
+  background-color: var(--surface);
+  border-color: var(--surface-hover);
+  color: #ffffff;
+}
+.form-control::placeholder {
+  color: var(--text-secondary);
+}
+.form-control:focus {
+  background-color: var(--surface);   /* prevents the white-flash you saw earlier */
+  color: #ffffff;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 0.25rem rgba(var(--accent-rgb), 0.25); /* orange focus ring, replaces Bootstrap's blue one */
+}
+
+
+/* fonts */
+body {
+  font-family: var(--font-body);
+  color: var(--text-primary);
+}
+
+h1, h2, h3, .artist-name, .track-name {
+  font-family: var(--font-display);
+  color: var(--text-primary);
+}
+
+.artist-name, .track-name {
+  text-anchor: middle;
+  dominant-baseline: middle;
+  font-size: 16;
+  fill: var(--text-primary);
+}
+
+.track-name {
+    font-weight: bold;
+}
+
+/*
+.artist-name {
+    font-style: italic;
+}
+*/
+
+
+/* colour theme */
+.track-square, .artist-circle, .connection-line {
+  stroke: var(--line-color);
+  stroke-width: 3px;
+}
+
+.path-node {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 0.15s ease-out;
+  cursor: pointer;
+}
+.path-node:hover {
+  transform: scale(1.12);
+}
+
+.svg-tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: var(--accent);
+  color: var(--text-primary);
+  font-weight: 400;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  opacity: 0;
+  transition: opacity 0.1s;
+  z-index: 1000;
+}
+.tooltip-title {
+  font-weight: 600;
+}
+
+.path-node {
+  opacity: 0;
+  animation: node-fade 0.4s ease-out forwards;
+}
+@keyframes node-fade {
+  to { opacity: 1; }
+}
+
+/*
+.path-connector {
+  stroke: url(#connector-gradient);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 8 6; 
+}
+
+.path-connector {
+  stroke-dasharray: 200;
+  stroke-dashoffset: 200;
+  animation: draw-line 0.5s ease-out forwards;
+}
+@keyframes draw-line {
+  to { stroke-dashoffset: 0; }
+}
+*/
+
+.path-connector {
+  stroke: url(#connector-gradient);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 8 6;
+  stroke-dashoffset: 8; /* one dash-cycle length, not 200 */
+  animation: draw-line 0.5s ease-out forwards;
+}
+@keyframes draw-line {
+  to { stroke-dashoffset: 0; }
+}
+
+.no-animation {
+  animation: none !important;
+  opacity: 1 !important;
+  stroke-dashoffset: 0 !important;
+  transform: none !important;
+}
+

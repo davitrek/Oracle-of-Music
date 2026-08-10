@@ -1,5 +1,6 @@
 import db_operations
 import spotify
+from config import Config
 from data_classes import WebImage
 from models import Artist
 
@@ -28,8 +29,11 @@ def better_squarer_image(img1: WebImage, img2: WebImage) -> WebImage:
     elif non_squareness1 > non_squareness2:
         return img2
 
-    # images are both same non-squareness, return bigger image:
-    if max(img1.height, img1.width) > max(img2.height, img2.width):
+    # images are both same non-squareness, return one closer to 'ideal'
+    # image size
+    if abs(max(img1.height, img1.width) - Config.IDEAL_IMAGE_SIZE) < abs(
+        max(img2.height, img2.width) - Config.IDEAL_IMAGE_SIZE
+    ):
         return img1
 
     return img2

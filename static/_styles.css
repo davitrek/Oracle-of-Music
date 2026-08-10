@@ -1,0 +1,102 @@
+[data-bs-theme="dark"] {
+  --bs-primary: #e83f6f;
+  --bs-primary-rgb: 232, 63, 111;        /* needed for rgba()-based effects like focus glow */
+  --bs-primary-text-emphasis: #ff6f95;   /* lighter tint, used for text-on-dark variants */
+  --bs-primary-bg-subtle: #3a1420;       /* subtle background tint variant */
+  --bs-primary-border-subtle: #7a2540;   /* subtle border tint variant */
+
+  --bs-body-bg: #0a0a0c;
+  --bs-body-color: #ffffff;
+  --bs-secondary-color: #a7a7a7;         /* muted text, e.g. placeholders */
+  --bs-border-color: #282828;
+}
+
+:root {
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  
+  --bg: #0a0a0c;          /* page background - near black */
+  --surface: #181818;      /* cards, nav, inputs */
+  --surface-hover: #282828; /* hover states on surface */
+  --text-primary: #ffffff;
+  --text-secondary: #a7a7a7; /* subtitles, placeholders */
+  --accent: #ff9500;       /* pick your highlight - pink/magenta example */
+  --accent-hover: #ffaa33; /* slightly brighter for hover */
+  --line-color: #4c4c4c;
+}
+
+.navbar {
+  background-color: var(--surface);      /* background: not a local var, set directly */
+  --bs-navbar-brand-color: var(--text-primary);
+  --bs-navbar-color: var(--text-secondary);      /* nav link default color */
+  --bs-navbar-hover-color: var(--accent);        /* nav link hover -> your accent */
+  --bs-navbar-active-color: var(--accent);       /* current-page link -> your accent */
+}
+
+/* fonts 
+body {
+  font-family: var(--font-body);
+  color: var(--text-primary);
+}
+
+h1, h2, h3, .artist-name, .track-name {
+  font-family: var(--font-display);
+  color: var(--text-primary);
+}
+
+
+.artist-name, .track-name {
+  text-anchor: middle;
+  dominant-baseline: middle;
+  font-size: 16;
+  fill: var(--text-primary);
+}
+
+.track-name {
+    font-weight: bold;
+}
+
+
+
+.artist-name {
+    font-style: italic;
+}
+
+  
+ Colour theme 
+body {
+  background: var(--bg);
+  color: var(--text-primary);
+}
+
+.navbar {
+  background: var(--surface);
+  color: var(--text-primary)
+}
+
+.track-square, .artist-circle, .connection-line {
+  stroke: var(--line-color);
+  stroke-width: 3px;
+}
+
+.artist-input {
+  background: var(--surface);
+  border: 1px solid var(--surface-hover);
+  color: var(--text-primary);
+}
+.artist-input::placeholder {
+  color: var(--text-secondary);
+}
+.artist-input:focus {
+  border-color: var(--accent);
+}
+
+.find-path-btn {
+  background: var(--accent);
+  color: #ffffff;
+  border: none;
+}
+.find-path-btn:hover {
+  background: var(--accent-hover);
+}
+*/
