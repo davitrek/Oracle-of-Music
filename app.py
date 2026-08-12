@@ -1,6 +1,5 @@
-from collections import defaultdict
-
 from flask import Flask, render_template, request
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 import adjacency_list
 import db_operations
@@ -10,10 +9,7 @@ import spotify
 from config import Config
 from data_classes import ArtistHTMLData, SVGLocation, TrackHTMLData
 from db import db
-
-valid_track_ids = []
-
-adj_list = defaultdict(set)
+from globals import Globals
 
 # create the app
 app = Flask(__name__)
@@ -23,17 +19,17 @@ app.config["SQLALCHEMY_ECHO"] = True
 # initialize the app with Flask-SQLAlchemy extension
 db.init_app(app)
 
+# make app aware of proxy in front of it (on prod server)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
-count = 100
+# @app.route("/")
+# def index():
+#     """Provide index"""
+#     return render_template("index.html")
 
 
-@app.route("/")
-def index():
-    """Provide index"""
-    return render_template("index.html")
-
-
-@app.route("/findpath", methods=["GET", "POST"])
+# @app.route("/findpath", methods=["GET", "POST"])
+@app.route("/", methods=["GET", "POST"])
 def findpath():
     if request.method == "GET":
         return render_template("findpath.html")
@@ -52,11 +48,11 @@ def findpath():
 
     # ---- find path ----
     # path_artists = find_path.find_artist_link(
-    #     adj_list, artist_start.id, artist_end.id
+    #     Globals.adj_list, artist_start.id, artist_end.id
     # )
 
     path_artists = find_path.build_artist_path(
-        adj_list, artist_start.id, artist_end.id
+        Globals.adj_list, artist_start.id, artist_end.id
     )
 
     if not path_artists:
@@ -152,14 +148,25 @@ def findpath():
     )
 
 
+@app.route("/api/artist_search", methods=["GET"])
+def artist_search():
+    query = request.args.get("q")
+
+    return db_operations.fetch_artist_typeahead(query)
+
+
 with app.app_context():
     # artist = db_operations.get_db_artist_by_name("Ye")
 
     # tst = db_operations.get_artist_spotify_id(artist)
 
-    adj_list = adjacency_list.build_adjacency_list(count)
+    Globals.adj_list = adjacency_list.build_adjacency_list(
+        Config.ARTISTS_TO_LOAD
+    )
 
     Config.SPOTIFY_ACCESS_TOKEN = spotify.get_spotify_access_token()
     Config.AUTHORISATION_HEADER["Authorization"] = (
         f"Bearer {Config.SPOTIFY_ACCESS_TOKEN}"
     )
+
+    print("Server running!")

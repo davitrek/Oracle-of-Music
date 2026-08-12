@@ -5,14 +5,15 @@
 {% endblock %}
 
 {% block main %}
-  <h1>Choose Path</h1>
-  <p>Path:</p>
-  <form action="/findpath" method="post">
+  <h1>Speak to the oracle:</h1>
+  <form action="/" method="post">
     <div class="mb-3">
-      <input autocomplete="off" autofocus class="form-control mx-auto w-auto" name="start" placeholder="Start Artist" type="text">
+      <input autocomplete="off" autofocus class="form-control mx-auto w-auto" name="start" placeholder="Start Artist" type="text" id="start" list="start-artists">
+      <datalist id="start-artists"></datalist>
     </div>
     <div class="mb-3">
-      <input autocomplete="off" autofocus class="form-control mx-auto w-auto" name="end" placeholder="End Artist" type="text">
+      <input autocomplete="off" class="form-control mx-auto w-auto" name="end" placeholder="End Artist" type="text" id="end" list="end-artists">
+      <datalist id="end-artists"></datalist>
     </div>
     <button class="btn btn-primary" type="submit">Find Path!</button>
   </form>
@@ -27,10 +28,10 @@
       height="200"
       width="100%">
       
-      <defs></defs>
+      <defs>
         <linearGradient id="connector-gradient" gradientUnits="userSpaceOnUse" x1="{{ line_first_begin }}" y1="100" x2="{{ line_last_end }}" y2="100">
-          <stop offset="0%" stop-color="#E85D25" />
-          <stop offset="100%" stop-color="#1DB954" />
+          <stop offset="0%" stop-color="var(--accent)"/>
+          <stop offset="100%" stop-color="var(--accent)"/>
         </linearGradient>
       </defs>
 

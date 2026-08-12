@@ -87,7 +87,7 @@ h1, h2, h3, .artist-name, .track-name {
 
 /* colour theme */
 .track-square, .artist-circle, .connection-line {
-  stroke: var(--line-color);
+  stroke: var(--accent);
   stroke-width: 3px;
 }
 
@@ -163,3 +163,19 @@ h1, h2, h3, .artist-name, .track-name {
   transform: none !important;
 }
 
+/* .mb-3 { position: relative; }
+.typeahead-results {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 300px;
+  overflow-y: auto;
+}
+.typeahead-results li { cursor: pointer; padding: 0.4rem 0.6rem; }
+.typeahead-results li:hover,
+.typeahead-results li.active { background: var(--bs-secondary-bg); } */

@@ -1,53 +1,4 @@
-// document.addEventListener('DOMContentLoaded', function () {
-//     document.addEventListener('Form', () => {
-//         fetch('/getpath', {
-//             method: 'POST',
-//             body: JSON.stringify({ start: "Kanye West", end: "Drake"}),
-//         })
-//         .then(response => response.json())
-//         .then(json => {
-
-//         })
-//     })
-// });
-
-    // // to aviod having duplicate code in each page's html
-    // // copies contents of navbar.html into <div> elements with id #navbar-container
-    // fetch('navbar.html')
-    // .then(response => response.text())
-    // .then(text => {
-    //     const container = document.querySelector('#navbar-container');
-    //     container.innerHTML = text;
-        
-    //     setCurrentPageActive();
-    // });
-    
-    // // to aviod having duplicate code in each page's html
-    // // copies contents of navbar.html into <div> elements with id #favicon
-    // fetch('favicon.html')
-    // .then(response => response.text())
-    // .then(text => {
-    //     const container = document.querySelector('#favicon');
-    //     container.innerHTML = text;
-    // });
-    
-    // alert('Welcome to my page!\n\n-John Smith');
-
-// function setCurrentPageActive() {
-//     let tmp = window.location.href.split('/')
-
-//     // should convert 'https:://... .com/index.html#etc' into 'index'
-//     let currPage = tmp[tmp.length - 1].split('.')[0];
-
-//     let navButtons = document.querySelectorAll('a.nav-link');
-//     for (button of navButtons) {
-//         if (button.id.toLowerCase() == currPage) {
-//             button.classList.add('active')
-//         }
-//     }
-// }
-// 
-
+// node hover tooltip
 const tooltip = document.createElement('div');
 tooltip.className = 'svg-tooltip';
 document.body.appendChild(tooltip);
@@ -70,10 +21,8 @@ document.querySelectorAll('.path-node-artist, .path-node-track').forEach(node =>
   });
 });
 
-// Wait for images to decode before starting animations
-const images = Array.from(document.querySelectorAll('svg image'));
-Promise.all(images.map(img => img.decode?.() ?? Promise.resolve()))
-  .finally(() => startPathAnimation());
+
+// graph animations
 
 document.querySelectorAll('[data-path-index]').forEach(el => {
   const i = parseInt(el.dataset.pathIndex, 10);
@@ -87,3 +36,54 @@ if (isFirefox) {
     el.classList.add('no-animation');
   });
 }
+
+let input_len = 0
+let possible_artists = [];
+
+// typeahead
+function debounce(fn, delay) {
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), delay);
+  };
+}
+
+function setupArtistTypeahead(inputId, datalistId) {
+  const input = document.getElementById(inputId);
+  const datalist = document.getElementById(datalistId);
+
+  const runSearch = debounce(async (query) => {
+    try {
+      const res = await fetch(`/api/artist_search?q=${encodeURIComponent(query)}`);
+      if (!res.ok) return;
+      const results = await res.json();
+
+      datalist.innerHTML = '';
+
+      results.forEach((item) => {
+        const label = item.name;
+
+        const option = document.createElement('option');
+        option.value = label;
+        datalist.appendChild(option);
+      });
+    } catch (err) {
+      console.error('Artist search failed:', err);
+    }
+  }, 300);
+
+  input.addEventListener('input', (e) => {
+    const query = e.target.value.trim();
+    if (query.length > 1) {
+      runSearch(query);
+    } else {
+      datalist.innerHTML = '';
+    }
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  setupArtistTypeahead('start', 'start-artists');
+  setupArtistTypeahead('end', 'end-artists');
+});

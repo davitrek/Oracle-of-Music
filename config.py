@@ -1,10 +1,13 @@
 from os import environ
+
 from dotenv import load_dotenv
 
 load_dotenv()
 
 
 class Config:
+    ARTISTS_TO_LOAD = 1000
+
     SQLALCHEMY_DATABASE_URI = environ["DATABASE_URL"]
     SPOTIFY_CLIENT_ID = environ["SPOTIFY_CLIENT_ID"]
     SPOTIFY_CLIENT_SECRET = environ["SPOTIFY_CLIENT_SECRET"]
@@ -25,3 +28,5 @@ class Config:
     MIN_RECORDINGS_COUNT = 10
 
     IDEAL_IMAGE_SIZE = 320
+
+    TYPEAHEAD_LIMIT = 10

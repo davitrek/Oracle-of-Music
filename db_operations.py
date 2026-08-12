@@ -5,11 +5,12 @@ from collections import defaultdict
 
 # from time import time
 # import sqlalchemy.exc
-from sqlalchemy import func, select
+from sqlalchemy import func, select, union
 from sqlalchemy.orm import aliased
 
 from config import Config
 from db import db
+from globals import Globals
 from models import (
     URL,
     Artist,
@@ -341,7 +342,7 @@ def get_artist_spotify_id(artist: Artist) -> str | None:
     #       e.g., Kanye has 3 spotify links - one for Kanye West account, one
     #       for Ye account, and one for DONDA account
     for url in urls:
-        if "spotify" in url.url:
+        if "spotify" in url.url and "artist" in url.url:
             r = re.findall(r"artist\/([^\/]*)", url.url)
             return r[0]
 
@@ -450,3 +451,52 @@ def get_track_artists(track):
     )
 
     return db.session.execute(stmt).scalars().all()
+
+
+# returns None if no artist could be found
+def fetch_artist_typeahead(query: str) -> list[dict]:
+    possible_artists = []
+
+    artist_search_stmt = (
+        select(Artist.id, Artist.name, Artist.comment)
+        .where(
+            func.lower(func.musicbrainz_unaccent(Artist.name)).startswith(
+                func.lower(func.musicbrainz_unaccent(query))
+            )
+        )
+        .where(Artist.id.in_(list(Globals.adj_list.keys())))
+        .limit(Config.TYPEAHEAD_LIMIT)
+    )
+
+    alias_search_stmt = (
+        select(
+            Artist.id,
+            ArtistAlias.name,
+            Artist.comment,
+        )
+        .join(Artist, Artist.id == ArtistAlias.artist_id)
+        .where(
+            func.lower(func.musicbrainz_unaccent(ArtistAlias.name)).startswith(
+                func.lower(func.musicbrainz_unaccent(query))
+            )
+        )
+        .where(Artist.id.in_(list(Globals.adj_list.keys())))
+        .distinct(Artist.id)
+        .limit(Config.TYPEAHEAD_LIMIT)
+    )
+
+    stmt = union(artist_search_stmt, alias_search_stmt).limit(
+        Config.TYPEAHEAD_LIMIT
+    )
+
+    results = db.session.execute(stmt).all()
+
+    for result in results:
+        possible_artists.append(
+            {
+                "mbid": result[0],
+                "name": result[1],
+            }
+        )
+
+    return possible_artists

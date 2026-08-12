@@ -210,14 +210,17 @@ def build_artist_path(
 
     for db_artist in db_artist_link:
         spotify_artist = find_spotify_artist(db_artist)
-
-        artist_path.append(
-            ArtistInfo(
-                mbid=db_artist.id,
-                spotify_id=spotify_artist["id"],
-                name=db_artist.name,
-                picture=spotify.select_best_artist_image(spotify_artist),
-            )
+        artist_info = ArtistInfo(
+            mbid=db_artist.id,
+            name=db_artist.name,
         )
+
+        if spotify_artist:
+            artist_info["spotify_id"] = spotify_artist["id"]
+            artist_info["picture"] = spotify.select_best_artist_image(
+                spotify_artist
+            )
+
+        artist_path.append(artist_info)
 
     return artist_path
