@@ -1,5 +1,4 @@
 from collections import defaultdict
-from time import time
 
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
@@ -10,18 +9,14 @@ from models import ArtistAdjacents
 
 
 def build_adjacency_list(number_artists: int) -> defaultdict[set]:
-    t0 = time()
     # during testing to skip loading names again
     loaded_adjacency_list = load_adjacency_list()
     adjacency_list = create_adjacency_list(
         number_artists, loaded_adjacency_list
     )
 
-    t1 = time()
-    tt = t1 - t0
-    print(tt)
     if len(adjacency_list) < number_artists:
-        print("check!!!")
+        print("Some artists may have failed to be found in database")
 
     save_adjacency_list(adjacency_list, loaded_adjacency_list)
 

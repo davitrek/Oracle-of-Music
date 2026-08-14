@@ -3,6 +3,7 @@ from time import sleep, time
 
 import requests
 from rapidfuzz import fuzz, utils
+from requests import Response
 
 import db_operations
 import exceptions
@@ -11,50 +12,69 @@ from config import Config
 from data_classes import WebImage
 
 
-# gets new Spotify access token
-def get_spotify_access_token(max_retries: int = 5) -> None:
-    print("Getting spotify access token.")
+class SpotifyTokenManager:
+    def __init__(self):
+        self.access_token: str = None
+        self.token_expires_at: float = 0
+        self.authorisation_header: dict = {}
 
-    url = Config.SPOTIFY_API_TOKEN_REQUEST_URL
-    headers = {"Content-Type": "application/x-www-form-urlencoded"}
-    params = {
-        "grant_type": "client_credentials",
-        "client_id": str(Config.SPOTIFY_CLIENT_ID),
-        "client_secret": str(Config.SPOTIFY_CLIENT_SECRET),
-    }
+        self.get_access_token()
 
-    for _ in range(max_retries):
-        r = requests.post(url, headers=headers, data=params)
+    # gets new Spotify access token
+    def get_access_token(self, max_retries: int = 5) -> None:
+        if not self._is_expired():
+            return
 
-        try:
-            r.raise_for_status()
-            break
-        except requests.HTTPError as e:
-            print(
-                "Error in trying to get Spotify access token:",
-                e.errno,
-                ":",
-                e.response,
+        print("Getting spotify access token.")
+
+        for _ in range(max_retries):
+            r = self._request_token()
+            try:
+                r.raise_for_status()
+                break
+            except requests.HTTPError as e:
+                print(
+                    "Error in trying to get Spotify access token:",
+                    e.errno,
+                    ":",
+                    e.response,
+                )
+
+                sleep(0.2)  # avoid re-requesting immediately
+        else:
+            print("Failed to get spotify access token!")
+            raise exceptions.SpotifyTokenError(
+                "Failed to get spotify access token!"
             )
 
-            sleep(0.2)  # avoid re-requesting immediately
-    else:
-        print("Failed to get spotify access token!")
-        raise exceptions.SpotifyTokenError(
-            "Failed to get spotify access token!"
-        )
+        try:
+            r = r.json()
+            self.access_token = r["access_token"]
+            self.token_expires_at = time() + r["expires_in"]
+            self.authorisation_header["Authorization"] = (
+                f"Bearer {self.access_token}"
+            )
+        except KeyError:
+            raise exceptions.SpotifyTokenError(
+                "Failed to get spotify access token!"
+            )
 
-    try:
-        r = r.json()
-        Config.SPOTIFY_ACCESS_TOKEN = r["access_token"]
-        Config.SPOTIFY_ACCESS_TOKEN_EXPIRY_TIME = time() + r["expires_in"]
-        Config.AUTHORISATION_HEADER["Authorization"] = (
-            f"Bearer {Config.SPOTIFY_ACCESS_TOKEN}"
-        )
-    except KeyError:
-        raise exceptions.SpotifyTokenError(
-            "Failed to get spotify access token!"
-        )
+    def _is_expired(self) -> bool:
+        return time() > (self.token_expires_at - 60)
+
+    def _request_token(self) -> Response:
+        url = Config.SPOTIFY_API_TOKEN_REQUEST_URL
+        headers = {"Content-Type": "application/x-www-form-urlencoded"}
+        params = {
+            "grant_type": "client_credentials",
+            "client_id": str(Config.SPOTIFY_CLIENT_ID),
+            "client_secret": str(Config.SPOTIFY_CLIENT_SECRET),
+        }
+
+        return requests.post(url, headers=headers, data=params)
+
+
+spotify_token_manager = SpotifyTokenManager()
 
 
 class ForTesting:
@@ -87,14 +107,15 @@ def search_spotify(
     url: str, params: dict | None = None, max_retries: int = 5
 ) -> dict:
     # if previous token expired (or is about to), get new one
-    if time() > Config.SPOTIFY_ACCESS_TOKEN_EXPIRY_TIME - 60:
-        get_spotify_access_token()
+    spotify_token_manager.get_access_token()
 
     for attempt in range(max_retries):
         log_spotify_query(url, params)
 
         r = requests.get(
-            url, params=params, headers=Config.AUTHORISATION_HEADER
+            url,
+            params=params,
+            headers=spotify_token_manager.authorisation_header,
         )
 
         try:

@@ -159,8 +159,6 @@ def artist_search():
 
 
 with app.app_context():
-    spotify.get_spotify_access_token()
-
     Globals.adj_list = adjacency_list.build_adjacency_list(
         Config.ARTISTS_TO_LOAD
     )

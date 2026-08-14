@@ -26,10 +26,6 @@ class Config:
     SPOTIFY_USER_ARTIST_URL = SPOTIFY_USER_URL + "/artist"
     SPOTIFY_USER_TRACK_URL = SPOTIFY_USER_URL + "/track"
 
-    SPOTIFY_ACCESS_TOKEN = ""
-    SPOTIFY_ACCESS_TOKEN_EXPIRY_TIME = 0
-    AUTHORISATION_HEADER = {}
-
     # local path to artist names that should be included in algorithms
     ARTIST_NAMES_FILE_PATH = environ["ARTIST_NAMES_FILE_PATH"]
 
@@ -43,3 +39,9 @@ class Config:
     TYPEAHEAD_LIMIT = 10
 
     IS_TESTING = environ.get("IS_TESTING")
+
+    # Track filtering:
+    VALID_RELEASE_PRIMARY_TYPES = ("Album", "Single", "EP")
+    VALID_RELEASE_SECONDARY_TYPES = ("Soundtrack", "Mixtape/Street", "Demo")
+    OFFICIAL_STATUS = "Official"
+    EXCLUDED_JOIN_PHRASES_LIKE = "vs"

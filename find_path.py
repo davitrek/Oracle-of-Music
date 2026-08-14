@@ -108,6 +108,8 @@ def get_solved_path(parents, root, target) -> list[Artist]:
         path.append(db_operations.get_db_artist_by_id(parents[n]))
         n = parents[n]
 
+    path.reverse()
+
     return path
 
 
@@ -156,6 +158,9 @@ def bfsConnected(adj, src, visited, res, target):
                 q.append(x)
 
 
+from time import time
+
+
 # creates list of TrackInfo that can be used to traverse corresponding artist path
 # from root to target
 def build_track_path(artist_path: list[ArtistInfo]) -> list[TrackInfo]:
@@ -166,7 +171,12 @@ def build_track_path(artist_path: list[ArtistInfo]) -> list[TrackInfo]:
             artist1.mbid, artist2.mbid
         )
         for collab_track in collab_tracks:
+            # TODO: This also takes about a second... almost entirely from API
+            #   lookup
+            a = time()
             spotify_track = spotify.fetch_track(collab_track)
+            b = time()
+            ab = b - a
 
             # if spotify has an equivalent to this MusicBrainz track, use it for
             # the path that will be displayed
@@ -198,6 +208,9 @@ def build_track_path(artist_path: list[ArtistInfo]) -> list[TrackInfo]:
     return track_path
 
 
+from time import time
+
+
 def build_artist_path(
     adj_list: defaultdict[set], artist_start_id: int, artist_end_id: int
 ) -> list[ArtistInfo] | None:
@@ -209,7 +222,13 @@ def build_artist_path(
         return None
 
     for db_artist in db_artist_link:
+        # TODO: searching artist here takes up to a second -> would rather
+        #   get page ready, then defer the animation until JS gets the images
+        #   from Spotify
+        a = time()
         spotify_artist = find_spotify_artist(db_artist)
+        b = time()
+        ab = b - a
         artist_info = ArtistInfo(
             mbid=db_artist.id,
             name=db_artist.name,

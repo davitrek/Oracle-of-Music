@@ -31,6 +31,8 @@ from models import (
     Track,
 )
 
+excluded_join_phrases = None
+
 
 def get_artist_name_from_list(line_number):
     with open(Config.ARTIST_NAMES_FILE_PATH) as f:
@@ -212,67 +214,12 @@ def get_artist_recordings(artist):
     return db.session.execute(stmt).scalars().all()
 
 
-# return only tracks that are on releases labelled as 'Official' AND ('Album',
-# 'EP', or 'Single')
-# def get_filtered_tracks():
-#     # need to review whether filtering ReleaseGroupPrimaryType is even worthwhile
-#     stmt = (
-#         select(ReleaseGroupPrimaryType.id)
-#         .where((ReleaseGroupPrimaryType.name == 'Album')
-#                | (ReleaseGroupPrimaryType.name == 'Single')
-#                | (ReleaseGroupPrimaryType.name == 'EP'))
-#     )
-#     release_group_primary_type_ids = db.session.execute(stmt).scalars().all()
-#
-#     stmt = (
-#         select(ReleaseStatus.id)
-#         .where(ReleaseStatus.name == 'Official')
-#     )
-#     official_release_status_id = db.session.execute(stmt).scalar_one()
-#
-#     tc0 = time()
-#     release_group_stmt = (
-#         select(ReleaseGroup.id)
-#         .where(ReleaseGroup.type_id.in_(release_group_primary_type_ids))
-#     )
-#     tmp = db.session.execute(release_group_stmt).scalars().all()
-#     tc1 = time()
-#     ttc = tc1 - tc0
-#
-#     td0 = time()
-#     release_stmt = (
-#         select(Release.id)
-#         .where(Release.release_group_id.in_(release_group_stmt))
-#         .where(Release.status_id == official_release_status_id)
-#     )
-#     tmp = db.session.execute(release_stmt).scalars().all()
-#     td1 = time()
-#     ttd = td1 - td0
-#
-#     te0 = time()
-#     stmt = (
-#         select(Track.id)
-#         .where(Track.medium_id.in_(release_stmt))
-#         .limit(100000)                                         # NOTE: for testing only
-#     )
-#     s = db.session.execute(stmt).scalars().all()
-#     te1 = time()
-#     tte = te1 - te0
-#
-#     return s
-
-
-# ALTERNATIVE ALTERNATIVE. this one uses track table instead of recording table
-# get all tracks with collaborators where artist is credited, adding them to a list
-#   each list entry should have the collaborator id and recording id
-#   if there is at least one track in that list, create entry in adjacency_list
+# uses 'track' database table to get all tracks with collaborators where artist
+# is credited, adding them to a list. Each list entry should have the
+# collaborator id and recording id. If there is at least one track in that list,
+# create entry in adjacency_list
 #   -> {id_of artist in artist table: adjacent nodes list}
 def get_artist_collaborators(artist_ids):
-    acn_target = aliased(ArtistCreditName)
-    acn_collab = aliased(ArtistCreditName)
-    artist_target = aliased(Artist)
-    artist_collab = aliased(Artist)
-
     # artist_target
     # -> acn_target
     # -> artist_credit
@@ -288,6 +235,11 @@ def get_artist_collaborators(artist_ids):
     # -> release_group
     # -> release_group_primary_type - to filter for IN (Album, Single, EP)
     # -> release_status - to filter for = Official
+
+    acn_target = aliased(ArtistCreditName)
+    acn_collab = aliased(ArtistCreditName)
+    artist_target = aliased(Artist)
+    artist_collab = aliased(Artist)
 
     stmt = (
         select(artist_target.id, artist_collab.id)
@@ -305,7 +257,7 @@ def get_artist_collaborators(artist_ids):
         .join(Track, Track.artist_credit_id == ArtistCredit.id)
     )
 
-    stmt = filter_tracks_for_official(stmt)
+    stmt = apply_track_filters(stmt, acn_target, acn_collab)
 
     artist_collabs_list = db.session.execute(stmt).all()
 
@@ -349,6 +301,37 @@ def get_artist_spotify_id(artist: Artist) -> str | None:
     return None
 
 
+def fetch_excluded_join_phrases():
+    global excluded_join_phrases
+    stmt = (
+        select(ArtistCreditName.join_phrase)
+        .distinct()
+        .where(
+            ArtistCreditName.join_phrase.like(
+                "%" + Config.EXCLUDED_JOIN_PHRASES_LIKE + "%"
+            )
+        )
+    )
+
+    excluded_join_phrases = db.session.execute(stmt).scalars().all()
+
+
+def apply_track_filters(stmt, acn_target, acn_collab):
+    stmt = filter_tracks_for_official(stmt)
+    stmt = filter_tracks_by_artist_credit_name(stmt, acn_target, acn_collab)
+
+    return stmt
+
+
+def filter_tracks_by_artist_credit_name(stmt, acn_target, acn_collab):
+    if not excluded_join_phrases:
+        fetch_excluded_join_phrases()
+
+    return stmt.where(
+        acn_target.join_phrase.not_in(excluded_join_phrases)
+    ).where(acn_collab.join_phrase.not_in(excluded_join_phrases))
+
+
 # filter tracks to try remove illegitimate musicbrainz entries
 def filter_tracks_for_official(stmt):
     # (track filters for officialness)
@@ -358,11 +341,7 @@ def filter_tracks_for_official(stmt):
     # -> release_group_primary_type - to filter for IN (Album, Single, EP)
     # -> release_status - to filter for = Official
 
-    valid_release_primary_types = ["Album", "Single", "EP"]
-    valid_release_secondary_types = ["Soundtrack", "Mixtape/Street", "Demo"]
-    official_status = "Official"
-
-    new_stmt = (
+    return (
         stmt.join(Medium, Medium.id == Track.medium_id)
         .join(Release, Release.id == Medium.release_id)
         .join(ReleaseGroup, ReleaseGroup.id == Release.release_group_id)
@@ -370,9 +349,11 @@ def filter_tracks_for_official(stmt):
             ReleaseGroupPrimaryType,
             ReleaseGroupPrimaryType.id == ReleaseGroup.type_id,
         )
-        .where(ReleaseGroupPrimaryType.name.in_(valid_release_primary_types))
+        .where(
+            ReleaseGroupPrimaryType.name.in_(Config.VALID_RELEASE_PRIMARY_TYPES)
+        )
         .join(ReleaseStatus, ReleaseStatus.id == Release.status_id)
-        .where(ReleaseStatus.name == official_status)
+        .where(ReleaseStatus.name == Config.OFFICIAL_STATUS)
         .join(
             ReleaseGroupSecondaryTypeJoin,
             ReleaseGroupSecondaryTypeJoin.release_group_id == ReleaseGroup.id,
@@ -385,13 +366,15 @@ def filter_tracks_for_official(stmt):
             isouter=True,
         )
         .where(
-            (ReleaseGroupSecondaryType.name.in_(valid_release_secondary_types))
+            (
+                ReleaseGroupSecondaryType.name.in_(
+                    Config.VALID_RELEASE_SECONDARY_TYPES
+                )
+            )
             # do not exclude albums without a secondary type
             | (ReleaseGroupSecondaryType.name == None)
         )
     )
-
-    return new_stmt
 
 
 # returns MusicBrainz database Track objects that have both artists credited
@@ -428,7 +411,7 @@ def fetch_collaborated_tracks(artist_id1, artist_id2):
         .join(Track, Track.artist_credit_id == ArtistCredit.id)
     )
 
-    stmt = filter_tracks_for_official(stmt)
+    stmt = apply_track_filters(stmt, acn_target, acn_collab)
 
     tracks = db.session.execute(stmt).scalars().all()
 

@@ -5,8 +5,6 @@ BEGIN;
     
 SET maintenance_work_mem = '1GB';
 
--- DT additions:
-
 /*
 CREATE INDEX application_idx_owner ON application (owner);
 */
@@ -115,6 +113,9 @@ CREATE UNIQUE INDEX artist_attribute_type_allowed_value_idx_gid ON artist_attrib
 CREATE UNIQUE INDEX artist_credit_idx_gid ON artist_credit (gid);
 
 CREATE INDEX artist_credit_name_idx_artist ON artist_credit_name (artist);
+
+CREATE INDEX artist_credit_name_idx_join_phrase ON artist_credit_name (join_phrase);
+
 
 /*
 CREATE UNIQUE INDEX artist_type_idx_gid ON artist_type (gid);
