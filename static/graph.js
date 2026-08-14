@@ -22,13 +22,14 @@ document.querySelectorAll('.path-node-artist, .path-node-track').forEach(node =>
 });
 
 
-// graph animations
-
+// graph animation offset per node
 document.querySelectorAll('[data-path-index]').forEach(el => {
   const i = parseInt(el.dataset.pathIndex, 10);
   el.style.animationDelay = `${i * 0.15}s`;
 });
 
+
+// disable animations for firefox, which seems to perform poorly with them
 const isFirefox = navigator.userAgent.toLowerCase().includes('firefox');
 
 if (isFirefox) {
@@ -36,9 +37,6 @@ if (isFirefox) {
     el.classList.add('no-animation');
   });
 }
-
-let input_len = 0
-let possible_artists = [];
 
 // typeahead
 function debounce(fn, delay) {

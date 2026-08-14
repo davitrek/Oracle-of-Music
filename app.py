@@ -15,20 +15,21 @@ from globals import Globals
 app = Flask(__name__)
 # configure the SQLite database, relative to the app instance folder
 app.config["SQLALCHEMY_DATABASE_URI"] = Config.SQLALCHEMY_DATABASE_URI
-app.config["SQLALCHEMY_ECHO"] = True
+
+if Config.IS_TESTING:
+    app.config["TESTING"] = True
+    app.config["SQLALCHEMY_ECHO"] = True
+
 # initialize the app with Flask-SQLAlchemy extension
 db.init_app(app)
 
-# make app aware of proxy in front of it (on prod server)
-app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
-
-# @app.route("/")
-# def index():
-#     """Provide index"""
-#     return render_template("index.html")
+# make app aware of proxy in front of it
+if not app.config.get("TESTING"):
+    app.wsgi_app = ProxyFix(
+        app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1
+    )
 
 
-# @app.route("/findpath", methods=["GET", "POST"])
 @app.route("/", methods=["GET", "POST"])
 def findpath():
     if request.method == "GET":
@@ -45,11 +46,6 @@ def findpath():
         return render_template(
             "findpath.html", error="Invalid artists start/end artist"
         )
-
-    # ---- find path ----
-    # path_artists = find_path.find_artist_link(
-    #     Globals.adj_list, artist_start.id, artist_end.id
-    # )
 
     path_artists = find_path.build_artist_path(
         Globals.adj_list, artist_start.id, artist_end.id
@@ -133,6 +129,13 @@ def findpath():
             )
         )
 
+    if line_positions:
+        line_first_begin = line_positions[0][0]
+        line_last_end = line_positions[-1][-1]
+    else:
+        line_first_begin = None
+        line_last_end = None
+
     return render_template(
         "findpath.html",
         is_found_path=True,
@@ -143,8 +146,8 @@ def findpath():
         line_positions=line_positions,
         spotify_artist_url=Config.SPOTIFY_USER_ARTIST_URL,
         spotify_track_url=Config.SPOTIFY_USER_TRACK_URL,
-        line_first_begin=line_positions[0][0],
-        line_last_end=line_positions[-1][-1],
+        line_first_begin=line_first_begin,
+        line_last_end=line_last_end,
     )
 
 
@@ -156,17 +159,10 @@ def artist_search():
 
 
 with app.app_context():
-    # artist = db_operations.get_db_artist_by_name("Ye")
-
-    # tst = db_operations.get_artist_spotify_id(artist)
+    spotify.get_spotify_access_token()
 
     Globals.adj_list = adjacency_list.build_adjacency_list(
         Config.ARTISTS_TO_LOAD
-    )
-
-    Config.SPOTIFY_ACCESS_TOKEN = spotify.get_spotify_access_token()
-    Config.AUTHORISATION_HEADER["Authorization"] = (
-        f"Bearer {Config.SPOTIFY_ACCESS_TOKEN}"
     )
 
     print("Server running!")

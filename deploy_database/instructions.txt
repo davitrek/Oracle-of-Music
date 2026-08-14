@@ -1,0 +1,17 @@
+* SQL scripts adapted from https://github.com/metabrainz/mbdata/ * 
+
+1. Set environment variables ${POSTGRES_DOCKER_VOLUME_LOCAL_PATH} and 
+    ${POSTGRES_PASSWORD}
+    -> folder pointed to by ${POSTGRES_DOCKER_VOLUME_LOCAL_PATH} needs to be EMPTY
+    -> otherwise postgres will just try and reuse existing files there
+
+2. Run following command in this folder:
+    docker compose up -d
+
+3. Download MusicBrainz database dump from https://metabrainz.org/datasets/download
+    -> update path to mbdump folder in BuildDatabase.sql
+
+4. Build database using BuildDatabase psql script once docker is up:
+    psql -h localhost -p 5432 -U postgres -d musicbrainz -f BuildDatabase.sql
+
+4. Postgres should be ready for application to run

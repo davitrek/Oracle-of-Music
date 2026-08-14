@@ -1,0 +1,16 @@
+services:
+  mbdb:
+    image: postgres:16
+    container_name: mbdb
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: musicbrainz
+    ports:
+      #maps port only to *localhost* -> port will not be accessible externally
+      - "127.0.0.1:5432:5432" 
+    volumes:
+    # left side of : is where postgres data should be on local machine
+    # right side of : shouldn't be touched (it's where in the docker container that
+    #   local volume will be available) - set as where postgres places its data
+      - ${POSTGRES_DOCKER_VOLUME_LOCAL_PATH}:/var/lib/postgresql/data

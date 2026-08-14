@@ -33,7 +33,7 @@ from models import (
 
 
 def get_artist_name_from_list(line_number):
-    with open(Config.SCRAPED_NAMES_FILE_PATH) as f:
+    with open(Config.ARTIST_NAMES_FILE_PATH) as f:
         for i, line in enumerate(f):
             if i == line_number - 1:
                 return line[:-1]

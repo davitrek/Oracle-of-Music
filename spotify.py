@@ -1,18 +1,21 @@
 import re
-from time import sleep
+from time import sleep, time
 
 import requests
 from rapidfuzz import fuzz, utils
 
 import db_operations
+import exceptions
 import helpers
 from config import Config
 from data_classes import WebImage
 
 
-# returns access token as dictionary
-def get_spotify_access_token():
-    url = "https://accounts.spotify.com/api/token"
+# gets new Spotify access token
+def get_spotify_access_token(max_retries: int = 5) -> None:
+    print("Getting spotify access token.")
+
+    url = Config.SPOTIFY_API_TOKEN_REQUEST_URL
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
     params = {
         "grant_type": "client_credentials",
@@ -20,55 +23,85 @@ def get_spotify_access_token():
         "client_secret": str(Config.SPOTIFY_CLIENT_SECRET),
     }
 
-    r = requests.post(url, headers=headers, data=params)
+    for _ in range(max_retries):
+        r = requests.post(url, headers=headers, data=params)
 
-    return r.json()["access_token"]
+        try:
+            r.raise_for_status()
+            break
+        except requests.HTTPError as e:
+            print(
+                "Error in trying to get Spotify access token:",
+                e.errno,
+                ":",
+                e.response,
+            )
+
+            sleep(0.2)  # avoid re-requesting immediately
+    else:
+        print("Failed to get spotify access token!")
+        raise exceptions.SpotifyTokenError(
+            "Failed to get spotify access token!"
+        )
+
+    try:
+        r = r.json()
+        Config.SPOTIFY_ACCESS_TOKEN = r["access_token"]
+        Config.SPOTIFY_ACCESS_TOKEN_EXPIRY_TIME = time() + r["expires_in"]
+        Config.AUTHORISATION_HEADER["Authorization"] = (
+            f"Bearer {Config.SPOTIFY_ACCESS_TOKEN}"
+        )
+    except KeyError:
+        raise exceptions.SpotifyTokenError(
+            "Failed to get spotify access token!"
+        )
 
 
 class ForTesting:
     qs = {}  # noqa: RUF012
 
 
+def log_spotify_query(url: str, params: dict) -> None:
+    s = "Querying Spotify: " + url
+    if params:
+        for k, v in params.items():
+            s = s + ", " + str(k) + ": " + str(v)
+
+    log_url = url
+    if params:
+        log_url = (
+            log_url + str(params.get("q", "")) + str(params.get("offset", ""))
+        )
+
+    if ForTesting.qs.get(log_url, ""):
+        print("Querying Spotify: Re-querying same url!")
+    else:
+        ForTesting.qs[url] = 1
+
+    print(s)
+
+
 # returns dictionary of search response from Spotify
 # returns None on error
-def search_spotify(url, params=None, max_retries=5):
+def search_spotify(
+    url: str, params: dict | None = None, max_retries: int = 5
+) -> dict:
+    # if previous token expired (or is about to), get new one
+    if time() > Config.SPOTIFY_ACCESS_TOKEN_EXPIRY_TIME - 60:
+        get_spotify_access_token()
+
     for attempt in range(max_retries):
-        s = "---->querying: " + url
-        if params:
-            for k, v in params.items():
-                s = s + ", " + str(k) + ": " + str(v)
+        log_spotify_query(url, params)
 
-        debug_url = url
-        if params:
-            debug_url = (
-                debug_url
-                + str(params.get("q", ""))
-                + str(params.get("offset", ""))
-            )
-
-        if ForTesting.qs.get(debug_url, ""):
-            print("Re-querying same url!")
-        else:
-            ForTesting.qs[url] = 1
-
-        print(s)
-
-        sleep(0.2)  # wait per request to avoid rate-limiting
-
-        if params:
-            r = requests.get(
-                url, params=params, headers=Config.AUTHORISATION_HEADER
-            )
-        else:
-            r = requests.get(url, headers=Config.AUTHORISATION_HEADER)
+        r = requests.get(
+            url, params=params, headers=Config.AUTHORISATION_HEADER
+        )
 
         try:
             r.raise_for_status()
         except requests.HTTPError:
-            # TODO: probably not ideal, will hang here if rate limited
-            if (
-                r.status_code == 429
-            ):  # rate limited, call function again after delay
+            # rate limited, call function again after delay
+            if r.status_code == 429:
                 retry_after_sec = int(r.headers["retry-after"])
 
                 if not retry_after_sec:
@@ -76,12 +109,20 @@ def search_spotify(url, params=None, max_retries=5):
                         2**attempt
                     )  # exponential backoff as backup
 
-                sleep(retry_after_sec)
+                if retry_after_sec > 60:
+                    print(
+                        "Query Spotify: Long delay before next attempt",
+                        f"({retry_after_sec}s)",
+                    )
 
+                sleep(retry_after_sec)
                 continue
+
             else:
                 print(r.status_code, ": ", r.reason)
                 return None
+
+        sleep(0.2)  # wait per request to avoid rate-limiting
 
         response = r.json()
 

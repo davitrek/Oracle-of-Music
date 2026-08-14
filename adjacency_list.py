@@ -9,7 +9,7 @@ from db import db
 from models import ArtistAdjacents
 
 
-def build_adjacency_list(number_artists):
+def build_adjacency_list(number_artists: int) -> defaultdict[set]:
     t0 = time()
     # during testing to skip loading names again
     loaded_adjacency_list = load_adjacency_list()
@@ -23,44 +23,49 @@ def build_adjacency_list(number_artists):
     if len(adjacency_list) < number_artists:
         print("check!!!")
 
-    # saved adjacency list test to make sure it's functioning correctly
-    # for k, v in adjacency_list.items():
-    #     for i in v:
-    #         if loaded_adjacency_list[k].__contains__(i):
-    #             break
-    #     else:
-    #         assert 0
-
-    save_adjacency_list(adjacency_list)
+    save_adjacency_list(adjacency_list, loaded_adjacency_list)
 
     return adjacency_list
 
 
-def save_adjacency_list(adj):
-    # the i-related stuff is just to avoid hitting SQLAlchemy's item limit
+def save_adjacency_list(
+    adj: defaultdict[set], loaded_adj: defaultdict[set]
+) -> None:
+    loaded_artists = loaded_adj.keys()
+
     added = []
     i = 0
-    for k, v in adj.items():
-        for artist in v:
-            added.append({"artist0_id": k, "artist1_id": artist})
-            i = i + 1
-            if i == 30000:
-                db.session.execute(
-                    insert(ArtistAdjacents)
-                    .values(added)
-                    .on_conflict_do_nothing()
+    for artist, adjacents in adj.items():
+        for adjacent_artist in adjacents:
+            # save artist adjacent pair to DB only if it wasn't already in DB
+            # before, as reflected by loaded_adj
+            if (
+                artist not in loaded_artists
+                or not adjacent_artist in loaded_adj[artist]
+            ):
+                added.append(
+                    {"artist0_id": artist, "artist1_id": adjacent_artist}
                 )
-                db.session.commit()
-                i = 0
-                added = []
+                i = i + 1
+                # to avoid hitting SQLAlchemy's item limit
+                if i == 30000:
+                    db.session.execute(
+                        insert(ArtistAdjacents)
+                        .values(added)
+                        .on_conflict_do_nothing()
+                    )
+                    db.session.commit()
+                    i = 0
+                    added = []
 
-    db.session.execute(
-        insert(ArtistAdjacents).values(added).on_conflict_do_nothing()
-    )
-    db.session.commit()
+    if added:
+        db.session.execute(
+            insert(ArtistAdjacents).values(added).on_conflict_do_nothing()
+        )
+        db.session.commit()
 
 
-def load_adjacency_list():
+def load_adjacency_list() -> defaultdict[set]:
     adjacency_list = defaultdict(set)
     t = db.session.execute(select(ArtistAdjacents)).scalars().all()
 
@@ -70,7 +75,9 @@ def load_adjacency_list():
     return adjacency_list
 
 
-def create_adjacency_list(count, loaded_adjacency_list=None):
+def create_adjacency_list(
+    count: int, loaded_adjacency_list: defaultdict[set] | None = None
+) -> defaultdict[set]:
     artist_ids_to_search = []
     with open("missingnames.txt", "w") as f:
         if loaded_adjacency_list:

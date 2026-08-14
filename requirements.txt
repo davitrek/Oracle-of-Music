@@ -7,3 +7,4 @@ psycopg[binary,pool]
 pytest
 requests
 RapidFuzz
+gunicorn

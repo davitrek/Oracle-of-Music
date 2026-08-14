@@ -213,11 +213,13 @@ def build_artist_path(
         artist_info = ArtistInfo(
             mbid=db_artist.id,
             name=db_artist.name,
+            spotify_id=None,
+            picture=None,
         )
 
         if spotify_artist:
-            artist_info["spotify_id"] = spotify_artist["id"]
-            artist_info["picture"] = spotify.select_best_artist_image(
+            artist_info.spotify_id = spotify_artist["id"]
+            artist_info.picture = spotify.select_best_artist_image(
                 spotify_artist
             )
 
