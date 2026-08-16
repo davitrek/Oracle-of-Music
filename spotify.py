@@ -25,6 +25,11 @@ class SpotifyTokenManager:
         if not self._is_expired():
             return
 
+        # avoid re-requesting immediately
+        # intentionally BEFORE request to ensure if this function called on
+        # multiple workers at once it doesn't spam Spotify
+        sleep(0.2)
+
         print("Getting spotify access token.")
 
         for _ in range(max_retries):
@@ -40,7 +45,6 @@ class SpotifyTokenManager:
                     e.response,
                 )
 
-                sleep(0.2)  # avoid re-requesting immediately
         else:
             print("Failed to get spotify access token!")
             raise exceptions.SpotifyTokenError(
@@ -175,17 +179,19 @@ def fetch_track(track):
     TRACK_LENGTH_TOLERANCE_MS = 2000
     NAME_RATIO_MIN = 90
 
-    def track_check_func(result):
-        if track.length:
-            return (
-                abs(result["duration_ms"] - track.length)
-                < TRACK_LENGTH_TOLERANCE_MS
-            )
-        else:
-            return (
-                track_name_similarity_ratio(result["name"], track.name)
-                > NAME_RATIO_MIN
-            )
+    def track_check_func(result) -> bool:
+        if track.length and (
+            abs(result["duration_ms"] - track.length)
+            < TRACK_LENGTH_TOLERANCE_MS
+        ):
+            return True
+
+        # if track length doesn't match, still check for name similarity
+
+        return (
+            track_name_similarity_ratio(result["name"], track.name)
+            > NAME_RATIO_MIN
+        )
 
     track = search_spotify_until_found(params, track_check_func, max_pages=2)
 
@@ -266,6 +272,19 @@ def fetch_all_track_images(spotify_id: str) -> list[dict] | None:
         return response["album"]["images"]
 
     return None
+
+
+def select_best_track_image(spotify_artist_obj: dict) -> WebImage | None:
+    spotify_images = spotify_artist_obj["album"]["images"]
+
+    if not spotify_images:
+        return None
+
+    images = []
+    for i in spotify_images:
+        images.append(helpers.convert_spotify_image_to_class(i))
+
+    return helpers.select_best_image(images)
 
 
 def fetch_best_track_image(spotify_id: str) -> WebImage:

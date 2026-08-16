@@ -22,11 +22,6 @@ document.querySelectorAll('.path-node-artist, .path-node-track').forEach(node =>
 });
 
 
-// graph animation offset per node
-document.querySelectorAll('[data-path-index]').forEach(el => {
-  const i = parseInt(el.dataset.pathIndex, 10);
-  el.style.animationDelay = `${i * 0.15}s`;
-});
 
 
 // disable animations for firefox, which seems to perform poorly with them
@@ -85,3 +80,81 @@ document.addEventListener('DOMContentLoaded', () => {
   setupArtistTypeahead('start', 'start-artists');
   setupArtistTypeahead('end', 'end-artists');
 });
+
+async function loadTrackImages() {
+  const elements = [...document.querySelectorAll('g.path-node-track')];
+  await Promise.allSettled(elements.map(async (g) => {
+    const image = g.querySelector('image[data-mbid]');
+    if (!image) return;
+
+    const mbid = image.dataset.mbid;
+    const anchor = g.querySelector('a');
+
+    try {
+      const res = await fetch(`/api/track_spotify_info?mbid=${encodeURIComponent(mbid)}`);
+      if (!res.ok) return;
+
+      const data = await res.json();
+
+      if (data.image_url) {
+        image.setAttribute('href', data.image_url);
+      }
+      if (anchor && data.track_url) {
+        anchor.setAttribute('href', data.track_url);
+      }
+    } catch (err) {
+      // silently ignore failed fetch/parse
+    }
+  }));
+}
+
+async function loadArtistImages() {
+  const elements = [...document.querySelectorAll('g.path-node-artist')];
+  await Promise.allSettled(elements.map(async (g) => {
+    const image = g.querySelector('image[data-mbid]');
+    if (!image) return;
+
+    const mbid = image.dataset.mbid;
+    const anchor = g.querySelector('a');
+
+    try {
+      const res = await fetch(`/api/artist_spotify_info?mbid=${encodeURIComponent(mbid)}`);
+      if (!res.ok) return;
+
+      const data = await res.json();
+
+      if (data.image_url) {
+        image.setAttribute('href', data.image_url);
+      }
+      if (anchor && data.artist_url) {
+        anchor.setAttribute('href', data.artist_url);
+      }
+    } catch (err) {
+      // silently ignore failed fetch/parse
+    }
+  }));
+}
+
+function revealPathNodes() {
+  document.querySelectorAll('[data-path-index]').forEach(el => {
+    const i = parseInt(el.dataset.pathIndex, 10);
+    el.style.animationDelay = `${i * 0.15}s`;
+    el.classList.add('reveal')
+  });
+}
+
+function revealPathConnectors() {
+  document.querySelectorAll('[data-path-connector-index]').forEach(el => {
+    const i = parseInt(el.dataset.pathIndex, 10);
+    el.style.animationDelay = `${i * 0.15}s`;
+    el.classList.add('reveal')
+  });
+}
+
+async function init() {
+  await Promise.all([loadTrackImages(), loadArtistImages()]);
+  revealPathNodes();
+  revealPathConnectors();
+}
+
+init();

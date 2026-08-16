@@ -35,22 +35,20 @@
         </linearGradient>
       </defs>
 
-      {% for line_position_1, line_position_2 in line_positions %}
+      {% for line_position_1, line_position_2, i in line_positions %}
 
-        <line class="connection-line path-connector" x1="{{ line_position_1 }}" y1="100" x2="{{ line_position_2 }}" y2="100"/>
+        <line class="connection-line path-connector" data-path-connector-index="{{ i }}" x1="{{ line_position_1 }}" y1="100" x2="{{ line_position_2 }}" y2="100"/>
       {% endfor %}
       
       {% for artist_data in artist_datas %}
         <g class="path-node path-node-artist" data-name="{{ artist_data.artist.name }}" data-path-index="{{ artist_data.path_index }}">
           <defs>
             <pattern id="artistImg{{ artist_data.artist.mbid }}" patternUnits="objectBoundingBox" width="1" height="1">
-              <image href="{{ artist_data.artist.picture.url }}" x="0" y="0" width="{{ 2 * artist_data.circle_rad }}" height="{{ 2 * artist_data.circle_rad }}" preserveAspectRatio="xMidYMid slice"/>
+              <image data-mbid="{{ artist_data.artist.mbid }}" href="{{ url_for('static', filename='artist_placeholder')}}" x="0" y="0" width="{{ 2 * artist_data.circle_rad }}" height="{{ 2 * artist_data.circle_rad }}" preserveAspectRatio="xMidYMid slice"/>
             </pattern>
           </defs>
-
-          {% if artist_data.artist.spotify_id %}
-            <a href="{{ spotify_artist_url }}/{{ artist_data.artist.spotify_id }}">
-          {% endif %}
+          
+          <a>
 
           <circle class="artist-circle" cx="{{ artist_data.circle_pos.x }}" cy="{{ artist_data.circle_pos.y}}" r="{{ artist_data.circle_rad }}" fill="url(#artistImg{{ artist_data['artist'].mbid }})"/>
           
@@ -58,9 +56,7 @@
             {{ artist_data.artist.name }}
           </text>
 
-          {% if artist_data.artist.spotify_id %}
           </a>
-          {% endif %}
         </g>
       {% endfor %}
       
@@ -68,17 +64,11 @@
         <g class="path-node path-node-track" data-name="{{ track_data.track.name }}" data-artists="{{ track_data.track.artists }}" data-path-index="{{ track_data.path_index }}">
           <defs>
             <pattern id="trackImg{{ track_data.track.mbid }}" patternUnits="objectBoundingBox" width="1" height="1">
-              {% if track_data.track.album_art %}
-                <image href="{{ track_data.track.album_art.url }}" x="0" y="0" width="{{ track_data.square_size }}" height="{{ track_data.square_size }}" preserveAspectRatio="xMidYMid slice"/>
-              {% else %}
-                <image href="{{ url_for('static', filename='images/missing_album_art.png') }}" x="0" y="0" width="{{ track_data.square_size }}" height="{{ track_data.square_size }}" preserveAspectRatio="xMidYMid slice"/>
-              {% endif %}
+              <image data-mbid="{{ track_data.track.mbid }}" href="{{ url_for('static', filename='images/missing_album_art.png') }}" x="0" y="0" width="{{ track_data.square_size }}" height="{{ track_data.square_size }}" preserveAspectRatio="xMidYMid slice"/>
             </pattern>
           </defs>
           
-          {% if track_data.track.spotify_id %}
-            <a href="{{ spotify_track_url }}/{{ track_data.track.spotify_id }}">
-          {% endif %}
+          <a>
 
           <rect class="track-square" x="{{ track_data.square_pos.x }}" y="{{ track_data.square_pos.y }}" width="{{ track_data.square_size }}" height="{{ track_data.square_size }}" fill="url(#trackImg{{ track_data.track.mbid }})"/>
           
@@ -86,9 +76,7 @@
             {{ track_data.track.name }}
           </text>
 
-          {% if track_data.track.spotify_id %}
-            </a>
-          {% endif %}
+          </a>
         </g>
       {% endfor %}
     </svg>

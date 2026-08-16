@@ -378,7 +378,7 @@ def filter_tracks_for_official(stmt):
 
 
 # returns MusicBrainz database Track objects that have both artists credited
-def fetch_collaborated_tracks(artist_id1, artist_id2):
+def fetch_collaborated_tracks(artist_id1: int, artist_id2: int) -> list[Track]:
     acn_target = aliased(ArtistCreditName)
     acn_collab = aliased(ArtistCreditName)
     artist_target = aliased(Artist)
@@ -483,3 +483,8 @@ def fetch_artist_typeahead(query: str) -> list[dict]:
         )
 
     return possible_artists
+
+
+def fetch_track_by_id(id: int) -> Track:
+    stmt = select(Track).where(Track.id == id)
+    return db.session.execute(stmt).scalar_one_or_none()

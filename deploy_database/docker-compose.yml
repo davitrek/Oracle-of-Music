@@ -14,3 +14,5 @@ services:
     # right side of : shouldn't be touched (it's where in the docker container that
     #   local volume will be available) - set as where postgres places its data
       - ${POSTGRES_DOCKER_VOLUME_LOCAL_PATH}:/var/lib/postgresql/data
+    shm_size: 256m
+

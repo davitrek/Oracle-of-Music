@@ -34,14 +34,21 @@ def line_positions(
     square_centres: list[float],
 ) -> list[tuple[float, float]]:
     positions = []
-    for circle_first_pos, square_pos, circle_second_pos in zip(
-        circle_centres, square_centres, circle_centres[1:]
+    for circle_first_pos, square_pos, circle_second_pos, i in zip(
+        circle_centres,
+        square_centres,
+        circle_centres[1:],
+        range(0, len(circle_centres), 2),
     ):
         positions.append(
-            (circle_first_pos + circle_rad, square_pos - square_size / 2)
+            (circle_first_pos + circle_rad, square_pos - square_size / 2, i)
         )
         positions.append(
-            (square_pos + square_size / 2, circle_second_pos - circle_rad)
+            (
+                square_pos + square_size / 2,
+                circle_second_pos - circle_rad,
+                i + 1,
+            )
         )
 
     return positions
