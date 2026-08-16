@@ -17,9 +17,6 @@
     </div>
     <button class="btn btn-primary" type="submit">Find Path!</button>
   </form>
-  {% if error %}
-    <p style="color:red;">{{ error }}</p>
-  {% endif %}
   
   {% if is_found_path %}
     <svg
@@ -82,6 +79,17 @@
     </svg>
   {% endif %}
   
+  <script>
+    let error_message=null
+  </script>
+  
+  {% if error_message %}
+    <script>
+      error_message="{{ error_message }}"
+    </script>
+  {% endif %}
+
   <script src="{{ url_for('static', filename='graph.js') }}"></script>
+  
     
 {% endblock %}

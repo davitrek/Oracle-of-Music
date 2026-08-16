@@ -2476,7 +2476,6 @@ CREATE TABLE l_work_work ( -- replicate
     entity0_credit      TEXT NOT NULL DEFAULT '',
     entity1_credit      TEXT NOT NULL DEFAULT ''
 );
-*/
 
 CREATE TABLE label ( -- replicate (verbose)
     id                  SERIAL,
@@ -2511,7 +2510,6 @@ CREATE TABLE label ( -- replicate (verbose)
       )
 );
 
-/*
 CREATE TABLE label_rating_raw
 (
     label               INTEGER NOT NULL, -- PK, references label.id

@@ -6,7 +6,7 @@ load_dotenv()
 
 
 class Config:
-    ARTISTS_TO_LOAD = 1000
+    ARTISTS_TO_LOAD = int(environ["ARTISTS_TO_LOAD"])
 
     SQLALCHEMY_DATABASE_URI = environ["DATABASE_URL"]
 

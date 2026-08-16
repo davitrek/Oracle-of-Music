@@ -42,9 +42,15 @@ def findpath():
     artist_start = db_operations.get_db_artist_by_name(name_start)
     artist_end = db_operations.get_db_artist_by_name(name_end)
 
-    if not artist_start or not artist_end:
+    if not artist_start:
         return render_template(
-            "findpath.html", error="Invalid artists start/end artist"
+            "findpath.html",
+            error_message="Could not find start artist of that name.",
+        )
+    if not artist_end:
+        return render_template(
+            "findpath.html",
+            error_message="Could not find end artist of that name.",
         )
 
     path_artists = find_path.build_artist_path(
@@ -52,7 +58,7 @@ def findpath():
     )
 
     if not path_artists:
-        return render_template("findpath.html", error="No path found :(")
+        return render_template("findpath.html", error_message="No path found.")
 
     path_tracks = find_path.build_track_path(path_artists)
 

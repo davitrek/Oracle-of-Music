@@ -158,3 +158,9 @@ async function init() {
 }
 
 init();
+  
+if (error_message) {
+  const errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
+  document.querySelector('#errorModal .modal-body').textContent = error_message;
+  errorModal.show();
+}
