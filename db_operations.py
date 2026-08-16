@@ -264,6 +264,7 @@ def get_artist_collaborators(artist_ids):
     adj = defaultdict(set)
     for i in artist_collabs_list:
         adj[i[0]].add(i[1])
+        adj[i[1]].add(i[0])
 
     return adj
 
