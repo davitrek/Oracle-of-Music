@@ -19,4 +19,6 @@ COPY musicbrainz.release_group_secondary_type FROM ':mbdump_location/mbdump/mbdu
 COPY musicbrainz.url FROM ':mbdump_location/mbdump/mbdump/url' WITH (FORMAT text);
 COPY musicbrainz.l_artist_url FROM ':mbdump_location/mbdump/mbdump/l_artist_url' WITH (FORMAT text);
 
+COPY musicbrainz.release_label FROM ':mbdump_location/mbdump/mbdump/release_label' WITH (FORMAT text);
+
 COMMIT;

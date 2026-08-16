@@ -2476,6 +2476,7 @@ CREATE TABLE l_work_work ( -- replicate
     entity0_credit      TEXT NOT NULL DEFAULT '',
     entity1_credit      TEXT NOT NULL DEFAULT ''
 );
+*/
 
 CREATE TABLE label ( -- replicate (verbose)
     id                  SERIAL,
@@ -2510,6 +2511,7 @@ CREATE TABLE label ( -- replicate (verbose)
       )
 );
 
+/*
 CREATE TABLE label_rating_raw
 (
     label               INTEGER NOT NULL, -- PK, references label.id
@@ -3532,6 +3534,7 @@ CREATE TABLE release_meta ( -- replicate (verbose)
     amazon_asin         VARCHAR(10),
     cover_art_presence  cover_art_presence NOT NULL DEFAULT 'absent'
 );
+*/
 
 CREATE TABLE release_label ( -- replicate (verbose)
     id                  SERIAL,
@@ -3541,6 +3544,7 @@ CREATE TABLE release_label ( -- replicate (verbose)
     last_updated        TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+/*
 CREATE TABLE release_packaging ( -- replicate
     id                  SERIAL,
     name                VARCHAR(255) NOT NULL,

@@ -25,9 +25,7 @@ ALTER TABLE place         ADD CHECK (controlled_for_whitespace(comment));
 ALTER TABLE recording     ADD CHECK (controlled_for_whitespace(comment));
 ALTER TABLE release       ADD CHECK (controlled_for_whitespace(comment));
 ALTER TABLE release_group ADD CHECK (controlled_for_whitespace(comment));
-/*
 ALTER TABLE release_label ADD CHECK (controlled_for_whitespace(catalog_number));
-*/
 /*
 ALTER TABLE series        ADD CHECK (controlled_for_whitespace(comment));
 */
@@ -231,23 +229,17 @@ ADD CONSTRAINT group_type_implies_null_gender CHECK (
   OR type IS NULL
 );
 
-/*
 ALTER TABLE release_label
 ADD CHECK (catalog_number IS NOT NULL OR label IS NOT NULL);
-*/
 
-/*
 ALTER TABLE release_label
   ADD CONSTRAINT no_empty_string_catalog_number
   CHECK (catalog_number != '');
-*/
 
-/*
 ALTER TABLE release_label
   ADD CONSTRAINT release_label_uniq
   UNIQUE NULLS NOT DISTINCT (release, label, catalog_number)
   DEFERRABLE INITIALLY DEFERRED;
-*/
 
 ALTER TABLE artist ADD CONSTRAINT artist_va_check
     CHECK (id <> 1 OR

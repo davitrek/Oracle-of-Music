@@ -901,3 +901,46 @@ class LinkArtistURL(db.Model):
     @hybrid_property
     def url_id(self):
         return self.entity1_id
+
+
+class ReleaseLabel(db.Model):
+    __tablename__ = "release_label"
+    __table_args__ = (
+        Index("release_label_idx_release", "release"),
+        Index("release_label_idx_label", "label"),
+        {"schema": "musicbrainz"},
+    )
+
+    id = Column(Integer, primary_key=True)
+    release_id = Column(
+        "release",
+        Integer,
+        ForeignKey(
+            "musicbrainz.release.id",
+            name="release_label_fk_release",
+        ),
+        nullable=False,
+    )
+    # release_id = Column("release", Integer, ForeignKey(apply_schema("release.id", "musicbrainz"), name="release_label_fk_release",), nullable=False,)
+
+    label_id = Column(
+        "label",
+        Integer,
+        ForeignKey(
+            "musicbrainz.label.id",
+            name="release_label_fk_label",
+        ),
+    )
+    # label_id = Column( "label", Integer, ForeignKey( apply_schema("label.id", "musicbrainz"), name="release_label_fk_label",),)
+    catalog_number = Column(String(255))
+    last_updated = Column(
+        DateTime(timezone=True), server_default=sql.func.now()
+    )
+
+    release = relationship(
+        "Release",
+        foreign_keys=[release_id],
+        innerjoin=True,
+        backref=backref("labels"),
+    )
+    # label = relationship("Label", foreign_keys=[label_id])

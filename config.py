@@ -44,4 +44,5 @@ class Config:
     VALID_RELEASE_PRIMARY_TYPES = ("Album", "Single", "EP")
     VALID_RELEASE_SECONDARY_TYPES = ("Soundtrack", "Mixtape/Street", "Demo")
     OFFICIAL_STATUS = "Official"
+    NO_LABEL_ID = 3267  # ID of special purpose identifier in DB
     EXCLUDED_JOIN_PHRASES_LIKE = "vs"

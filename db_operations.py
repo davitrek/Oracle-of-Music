@@ -27,6 +27,7 @@ from models import (
     ReleaseGroupPrimaryType,
     ReleaseGroupSecondaryType,
     ReleaseGroupSecondaryTypeJoin,
+    ReleaseLabel,
     ReleaseStatus,
     Track,
 )
@@ -375,6 +376,8 @@ def filter_tracks_for_official(stmt):
             # do not exclude albums without a secondary type
             | (ReleaseGroupSecondaryType.name == None)
         )
+        .join(ReleaseLabel, ReleaseLabel.release_id == Release.id)
+        .where(ReleaseLabel.label_id != Config.NO_LABEL_ID)
     )
 
 

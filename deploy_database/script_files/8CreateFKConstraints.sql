@@ -4870,12 +4870,10 @@ ALTER TABLE release_group_tag_raw
    REFERENCES tag(id);
 */
 
-/*
 ALTER TABLE release_label
    ADD CONSTRAINT release_label_fk_release
    FOREIGN KEY (release)
    REFERENCES release(id);
-*/
 
 /*
 ALTER TABLE release_label

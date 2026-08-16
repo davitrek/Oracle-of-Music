@@ -1419,9 +1419,7 @@ CREATE INDEX release_tag_raw_idx_tag ON release_tag_raw (tag);
 CREATE INDEX release_tag_raw_idx_editor ON release_tag_raw (editor);
 */
 
-/*
 CREATE INDEX release_label_idx_release ON release_label (release);
-*/
 /*
 CREATE INDEX release_label_idx_label ON release_label (label);
 */

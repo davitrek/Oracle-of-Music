@@ -209,7 +209,7 @@ SELECT setval('release_id_seq', COALESCE((SELECT MAX(id) FROM release), 0) + 1, 
 -- SELECT setval('release_attribute_type_id_seq', COALESCE((SELECT MAX(id) FROM release_attribute_type), 0) + 1, FALSE);
 -- SELECT setval('release_attribute_type_allowed_value_id_seq', COALESCE((SELECT MAX(id) FROM release_attribute_type_allowed_value), 0) + 1, FALSE);
 -- SELECT setval('release_attribute_id_seq', COALESCE((SELECT MAX(id) FROM release_attribute), 0) + 1, FALSE);
--- SELECT setval('release_label_id_seq', COALESCE((SELECT MAX(id) FROM release_label), 0) + 1, FALSE);
+SELECT setval('release_label_id_seq', COALESCE((SELECT MAX(id) FROM release_label), 0) + 1, FALSE);
 -- SELECT setval('release_packaging_id_seq', COALESCE((SELECT MAX(id) FROM release_packaging), 0) + 1, FALSE);
 SELECT setval('release_status_id_seq', COALESCE((SELECT MAX(id) FROM release_status), 0) + 1, FALSE);
 SELECT setval('release_group_id_seq', COALESCE((SELECT MAX(id) FROM release_group), 0) + 1, FALSE);

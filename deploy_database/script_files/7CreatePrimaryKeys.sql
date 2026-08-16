@@ -324,7 +324,7 @@ ALTER TABLE release_group_secondary_type ADD CONSTRAINT release_group_secondary_
 ALTER TABLE release_group_secondary_type_join ADD CONSTRAINT release_group_secondary_type_join_pkey PRIMARY KEY (release_group, secondary_type);
 -- ALTER TABLE release_group_tag ADD CONSTRAINT release_group_tag_pkey PRIMARY KEY (release_group, tag);
 -- ALTER TABLE release_group_tag_raw ADD CONSTRAINT release_group_tag_raw_pkey PRIMARY KEY (release_group, editor, tag);
--- ALTER TABLE release_label ADD CONSTRAINT release_label_pkey PRIMARY KEY (id);
+ALTER TABLE release_label ADD CONSTRAINT release_label_pkey PRIMARY KEY (id);
 -- ALTER TABLE release_meta ADD CONSTRAINT release_meta_pkey PRIMARY KEY (id);
 -- ALTER TABLE release_packaging ADD CONSTRAINT release_packaging_pkey PRIMARY KEY (id);
 -- ALTER TABLE release_raw ADD CONSTRAINT release_raw_pkey PRIMARY KEY (id);
