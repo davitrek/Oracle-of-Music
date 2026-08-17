@@ -1,9 +1,26 @@
 {% extends "layout.html" %}
 
 {% block title %}
-    Buy Stocks
+    Welcome!
 {% endblock %}
 
-{% block main %}
-    <h1>Welcome!</h1>
+{% block fullpage_main %}
+  <div class="hero-section d-flex flex-column justify-content-center align-items-center text-center"
+       style="background-image: url({{ url_for('static', filename='images/oracle_of_music.png') }}); background-size: cover; background-position: center; min-height: 100vh; position: relative;">
+
+    <div class="hero-overlay"></div>
+
+    <div class="position-relative px-3">
+      <h1 class="display-3 fw-bold">Oracle of Music</h1>
+      <p class="lead col-lg-8 mx-auto">
+        Discover how any two artists are connected through songs,
+        collaborations, and features that link them together.
+        Ask the Oracle to find out!
+      </p>
+      <a href="/oracle" class="btn btn-lg btn-primary fw-bold px-5 py-3 mt-3">
+        Speak to the Oracle
+      </a>
+    </div>
+
+  </div>
 {% endblock %}

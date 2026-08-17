@@ -31,6 +31,11 @@ if not app.config.get("TESTING"):
 
 
 @app.route("/", methods=["GET", "POST"])
+def index():
+    return render_template("index.html")
+
+
+@app.route("/oracle", methods=["GET", "POST"])
 def findpath():
     if request.method == "GET":
         return render_template("findpath.html")
@@ -171,10 +176,15 @@ def artist_spotify_info():
 
     db_artist = db_operations.get_db_artist_by_id(int(mbid))
     if not db_artist:
-        print(" ")
+        print(
+            "Musicbrainz database fetch failure: artist not found in MusicBrainz database"
+        )
+        return {"error": "Artist not found in MusicBrainz database"}
+
     spotify_artist = find_path.find_spotify_artist(db_artist)
 
     if not spotify_artist:
+        print("Spotify query failure: artist not found on Spotify")
         return {"error": "Artist not found on Spotify"}
 
     image = spotify.select_best_artist_image(spotify_artist)
@@ -192,6 +202,11 @@ def track_spotify_info():
     mbid = request.args.get("mbid")
 
     db_track = db_operations.fetch_track_by_id(int(mbid))
+    if not db_track:
+        print(
+            "Musicbrainz database fetch failure: track not found in MusicBrainz database"
+        )
+        return {"error": "Track not found in MusicBrainz database"}
 
     spotify_track = spotify.fetch_track(db_track)
 

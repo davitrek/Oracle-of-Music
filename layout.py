@@ -38,7 +38,7 @@ def line_positions(
         circle_centres,
         square_centres,
         circle_centres[1:],
-        range(0, len(circle_centres), 2),
+        range(0, len(circle_centres) + 2, 2),
     ):
         positions.append(
             (circle_first_pos + circle_rad, square_pos - square_size / 2, i)

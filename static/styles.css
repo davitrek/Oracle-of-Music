@@ -8,6 +8,8 @@
   --text-primary: #ffffff;
   --text-secondary: #a7a7a7;
   --line-color: #4c4c4c;
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-body: 'Inter', sans-serif;
 }
 
 /* ---- page-wide theme ---- */
@@ -120,6 +122,10 @@ h1, h2, h3, .artist-name, .track-name {
   to { opacity: 1; }
 }
 
+.path-node.reveal, .path-connector.reveal {
+  animation-play-state: running;
+}
+
 .path-connector {
   stroke: url(#connector-gradient);
   stroke-width: 3;
@@ -135,13 +141,19 @@ h1, h2, h3, .artist-name, .track-name {
   to { opacity: 1; }
 }
 
-.path-node.reveal {
+.artist-image, .track-image {
+  opacity: 0;
+  animation: node-fade 0.4s ease-out forwards;
+  animation-play-state: paused;
+}
+@keyframes node-fade {
+  to { opacity: 1; }
+}
+
+.artist-image.reveal, .track-image.reveal {
   animation-play-state: running;
 }
 
-.path-connector.reveal {
-  animation-play-state: running;
-}
 
 /* for firefox, which seems to perform poorly with animations */
 .no-animation {
@@ -149,4 +161,22 @@ h1, h2, h3, .artist-name, .track-name {
   opacity: 1 !important;
   stroke-dashoffset: 0 !important;
   transform: none !important;
+}
+
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.5), rgba(0,0,0,0.75));
+  z-index: 1;
+}
+.hero-section > .position-relative {
+  z-index: 2;
+}
+
+html, body {margin: 0; height: 100%; overflow: hidden}
+
+.toast-header img {
+  width: 20px;
+  height: 20px;
+  object-fit: cover;
 }

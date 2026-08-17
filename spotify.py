@@ -12,23 +12,71 @@ from config import Config
 from data_classes import WebImage
 
 
-class SpotifyTokenManager:
+class SpotifyRequestManager:
     def __init__(self):
         self.access_token: str = None
         self.token_expires_at: float = 0
         self.authorisation_header: dict = {}
 
-        self.get_access_token()
+        self.next_valid_request_time: float = 0
+
+        self._get_access_token()
+
+    # returns dictionary of search response from Spotify
+    # returns None on error or request timeout
+    def search_spotify(
+        self, url: str, params: dict | None = None, max_retries: int = 5
+    ) -> dict | None:
+        # if previous token expired (or is about to), get new one
+        self._get_access_token()
+
+        for attempt in range(max_retries):
+            log_spotify_query(url, params)
+
+            # avoid re-requesting immediately.
+            # intentionally BEFORE request to ensure if this function called on
+            # multiple workers at once it doesn't spam Spotify
+            if not self._wait_to_request():
+                return None
+
+            r = requests.get(
+                url,
+                params=params,
+                headers=self.authorisation_header,
+            )
+
+            try:
+                r.raise_for_status()
+            except requests.HTTPError:
+                # rate limited, call function again after delay
+                if r.status_code == 429:
+                    retry_after_sec = int(r.headers["retry-after"])
+
+                    if not retry_after_sec:
+                        retry_after_sec = (
+                            2**attempt
+                        )  # exponential backoff as backup
+
+                    self.next_valid_request_time = time() + retry_after_sec
+                    continue
+
+                else:
+                    print(r.status_code, ": ", r.reason)
+                    return None
+
+            response = r.json()
+
+            return response
 
     # gets new Spotify access token
-    def get_access_token(self, max_retries: int = 5) -> None:
+    def _get_access_token(self, max_retries: int = 5) -> None:
         if not self._is_expired():
             return
 
-        # avoid re-requesting immediately
+        # avoid re-requesting immediately.
         # intentionally BEFORE request to ensure if this function called on
         # multiple workers at once it doesn't spam Spotify
-        sleep(0.2)
+        self._wait_to_request(True)
 
         print("Getting spotify access token.")
 
@@ -66,6 +114,23 @@ class SpotifyTokenManager:
     def _is_expired(self) -> bool:
         return time() > (self.token_expires_at - 60)
 
+    # returns False if wait time is too long and skipping search is preferable,
+    # unless false=True, in which case will always wait.
+    # returns True otherwise
+    def _wait_to_request(self, force: bool = False) -> bool:
+        time_now = time()
+        wait_time = self.next_valid_request_time - time_now
+
+        if not force and wait_time > Config.REQUEST_TIMEOUT_S:
+            return False
+
+        if wait_time > 0:
+            print(f"Hit wait time, waiting {wait_time}")
+            sleep(wait_time)
+
+        self.next_valid_request_time = time() + Config.REQUEST_DELAY_S
+        return True
+
     def _request_token(self) -> Response:
         url = Config.SPOTIFY_API_TOKEN_REQUEST_URL
         headers = {"Content-Type": "application/x-www-form-urlencoded"}
@@ -78,7 +143,13 @@ class SpotifyTokenManager:
         return requests.post(url, headers=headers, data=params)
 
 
-spotify_token_manager = SpotifyTokenManager()
+spotify_request_manager = SpotifyRequestManager()
+
+
+def search_spotify(
+    url: str, params: dict | None = None, max_retries: int = 5
+) -> dict:
+    spotify_request_manager.search_spotify(url, params, max_retries)
 
 
 class ForTesting:
@@ -105,58 +176,27 @@ def log_spotify_query(url: str, params: dict) -> None:
     print(s)
 
 
-# returns dictionary of search response from Spotify
-# returns None on error
-def search_spotify(
-    url: str, params: dict | None = None, max_retries: int = 5
-) -> dict:
-    # if previous token expired (or is about to), get new one
-    spotify_token_manager.get_access_token()
-
-    for attempt in range(max_retries):
-        log_spotify_query(url, params)
-
-        r = requests.get(
-            url,
-            params=params,
-            headers=spotify_token_manager.authorisation_header,
-        )
-
-        try:
-            r.raise_for_status()
-        except requests.HTTPError:
-            # rate limited, call function again after delay
-            if r.status_code == 429:
-                retry_after_sec = int(r.headers["retry-after"])
-
-                if not retry_after_sec:
-                    retry_after_sec = (
-                        2**attempt
-                    )  # exponential backoff as backup
-
-                if retry_after_sec > 60:
-                    print(
-                        "Query Spotify: Long delay before next attempt",
-                        f"({retry_after_sec}s)",
-                    )
-
-                sleep(retry_after_sec)
-                continue
-
-            else:
-                print(r.status_code, ": ", r.reason)
-                return None
-
-        sleep(0.2)  # wait per request to avoid rate-limiting
-
-        response = r.json()
-
-        return response
-
-
 # returns a dictionary representing a Spotify Track JSON object
 def fetch_track(track):
     artists = db_operations.get_track_artists(track)
+
+    artist_names = []
+    for artist in artists:
+        if str(artist.name).isascii():
+            artist_names.append(artist.name)
+        else:
+            # if artist name is non-ascii, use the string the artist_credit_name
+            # instead.
+            # E.g., Yours Eternally - ***U2 feat. Ed Sheeran & Taras Topolia***
+            # string between stars is the artist_credit, and the
+            # artist_credit_names are 'U2', 'Ed Sheeran', 'Taras Topolia'.
+            # HOWEVER, Taras Topolia's actual name in the MusicBrainz DB is
+            # 'Тарас Тополя' which is NOT how they're credited on Spotify which
+            # means Spotify doesn't find the track when using 'Тарас Тополя'
+            for artist_credit_name in track.artist_credit.artists:
+                if artist_credit_name.artist is artist:
+                    artist_names.append(artist_credit_name.name)
+                    break
 
     params = {
         "type": "track",
@@ -164,11 +204,9 @@ def fetch_track(track):
         "limit": 10,
     }
 
-    assert len(artists) > 0
-
     params["q"] = params["q"] + " artist:"
-    for artist in artists:
-        params["q"] = params["q"] + artist.name + " "
+    for artist_name in artist_names:
+        params["q"] = params["q"] + artist_name + " "
 
     params["q"] = params["q"][:-1]  # drop extraneous space at end, just in case
 
@@ -226,6 +264,9 @@ def search_spotify_until_found(params, check_func, max_retries=5, max_pages=5):
 
     for _ in range(max_pages):
         results = search_spotify(Config.SPOTIFY_SEARCH_URL, params, max_retries)
+        if not results:
+            return None
+
         for result in results[f"{obj_type}s"]["items"]:
             if check_func(result):
                 return result

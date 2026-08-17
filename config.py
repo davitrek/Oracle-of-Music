@@ -26,6 +26,9 @@ class Config:
     SPOTIFY_USER_ARTIST_URL = SPOTIFY_USER_URL + "/artist"
     SPOTIFY_USER_TRACK_URL = SPOTIFY_USER_URL + "/track"
 
+    REQUEST_DELAY_S = 0.1
+    REQUEST_TIMEOUT_S = 5
+
     # local path to artist names that should be included in algorithms
     ARTIST_NAMES_FILE_PATH = environ["ARTIST_NAMES_FILE_PATH"]
 

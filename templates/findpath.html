@@ -5,8 +5,8 @@
 {% endblock %}
 
 {% block main %}
-  <h1>Speak to the oracle:</h1>
-  <form action="/" method="post">
+  <h1>Speak to the Oracle:</h1>
+  <form action="/oracle" method="post">
     <div class="mb-3">
       <input autocomplete="off" autofocus class="form-control mx-auto w-auto" name="start" placeholder="Start Artist" type="text" id="start" list="start-artists">
       <datalist id="start-artists"></datalist>
@@ -41,18 +41,16 @@
         <g class="path-node path-node-artist" data-name="{{ artist_data.artist.name }}" data-path-index="{{ artist_data.path_index }}">
           <defs>
             <pattern id="artistImg{{ artist_data.artist.mbid }}" patternUnits="objectBoundingBox" width="1" height="1">
-              <image data-mbid="{{ artist_data.artist.mbid }}" href="{{ url_for('static', filename='artist_placeholder')}}" x="0" y="0" width="{{ 2 * artist_data.circle_rad }}" height="{{ 2 * artist_data.circle_rad }}" preserveAspectRatio="xMidYMid slice"/>
+              <image class="artist-image" data-mbid="{{ artist_data.artist.mbid }}" href="{{ url_for('static', filename='images/missing_artist_picture.png')}}" x="0" y="0" width="{{ 2 * artist_data.circle_rad }}" height="{{ 2 * artist_data.circle_rad }}" preserveAspectRatio="xMidYMid slice"/>
             </pattern>
           </defs>
           
-          <a>
-
-          <circle class="artist-circle" cx="{{ artist_data.circle_pos.x }}" cy="{{ artist_data.circle_pos.y}}" r="{{ artist_data.circle_rad }}" fill="url(#artistImg{{ artist_data['artist'].mbid }})"/>
-          
-          <text class="artist-name" x="{{ artist_data.name_pos.x }}" y="{{ artist_data.name_pos.y }}">
-            {{ artist_data.artist.name }}
-          </text>
-
+          <a target="_blank" rel="noopener noreferrer">
+            <circle class="artist-circle" cx="{{ artist_data.circle_pos.x }}" cy="{{ artist_data.circle_pos.y}}" r="{{ artist_data.circle_rad }}" fill="url(#artistImg{{ artist_data['artist'].mbid }})"/>
+            
+            <text class="artist-name" x="{{ artist_data.name_pos.x }}" y="{{ artist_data.name_pos.y }}">
+              {{ artist_data.artist.name }}
+            </text>
           </a>
         </g>
       {% endfor %}
@@ -61,23 +59,26 @@
         <g class="path-node path-node-track" data-name="{{ track_data.track.name }}" data-artists="{{ track_data.track.artists }}" data-path-index="{{ track_data.path_index }}">
           <defs>
             <pattern id="trackImg{{ track_data.track.mbid }}" patternUnits="objectBoundingBox" width="1" height="1">
-              <image data-mbid="{{ track_data.track.mbid }}" href="{{ url_for('static', filename='images/missing_album_art.png') }}" x="0" y="0" width="{{ track_data.square_size }}" height="{{ track_data.square_size }}" preserveAspectRatio="xMidYMid slice"/>
+              <image class="track-image" data-mbid="{{ track_data.track.mbid }}" href="{{ url_for('static', filename='images/missing_album_art.png') }}" x="0" y="0" width="{{ track_data.square_size }}" height="{{ track_data.square_size }}" preserveAspectRatio="xMidYMid slice"/>
             </pattern>
           </defs>
           
-          <a>
-
-          <rect class="track-square" x="{{ track_data.square_pos.x }}" y="{{ track_data.square_pos.y }}" width="{{ track_data.square_size }}" height="{{ track_data.square_size }}" fill="url(#trackImg{{ track_data.track.mbid }})"/>
-          
-          <text class="track-name" x="{{ track_data.name_pos.x }}" y="{{ track_data.name_pos.y }}">
-            {{ track_data.track.name }}
-          </text>
-
+          <a target="_blank" rel="noopener noreferrer">
+            <rect class="track-square" data-mbid="{{ track_data.track.mbid }}" x="{{ track_data.square_pos.x }}" y="{{ track_data.square_pos.y }}" width="{{ track_data.square_size }}" height="{{ track_data.square_size }}" fill="url(#trackImg{{ track_data.track.mbid }})"/>
+            
+            <text class="track-name" x="{{ track_data.name_pos.x }}" y="{{ track_data.name_pos.y }}">
+              {{ track_data.track.name }}
+            </text>
           </a>
         </g>
       {% endfor %}
     </svg>
   {% endif %}
+
+  <script>
+    const missing_track_art_url = "{{ url_for('static', filename='images/missing_album_art.png') }}"
+    const missing_artist_picture_url = "{{ url_for('static', filename='images/missing_artist_picture.png') }}"
+  </script>
   
   <script>
     let error_message=null

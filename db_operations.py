@@ -309,7 +309,7 @@ def fetch_excluded_join_phrases():
         select(ArtistCreditName.join_phrase)
         .distinct()
         .where(
-            ArtistCreditName.join_phrase.like(
+            ArtistCreditName.join_phrase.ilike(
                 "%" + Config.EXCLUDED_JOIN_PHRASES_LIKE + "%"
             )
         )

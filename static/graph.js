@@ -10,6 +10,10 @@ document.querySelectorAll('.path-node-artist, .path-node-track').forEach(node =>
     } else {
       tooltip.innerHTML = `<span class="tooltip-title">${node.dataset.name}</span>`;
     }
+    image = node.querySelector('.track-image, .artist-image');
+    if (image.href.baseVal == missing_track_art_url || image.href.baseVal == missing_artist_picture_url ) {
+      tooltip.innerHTML += '<br><span class="tooltip-subtext" style="font-style:italic">(Not on Spotify)</span>'
+    }
     tooltip.style.opacity = '1';
   });
   node.addEventListener('mousemove', e => {
@@ -151,13 +155,38 @@ function revealPathConnectors() {
   });
 }
 
-async function init() {
-  await Promise.all([loadTrackImages(), loadArtistImages()]);
+function animatePath() {
   revealPathNodes();
   revealPathConnectors();
 }
 
-init();
+function setImages() {
+  document.querySelectorAll('g.path-node-track').forEach(g => {
+    const track_image = g.querySelector('.track-image');
+    if (!track_image) return;
+    track_image.classList.add('reveal');
+  })
+  
+  document.querySelectorAll('g.path-node-artist').forEach(g => {
+    const artist_image = g.querySelector('.artist-image');
+    if (!artist_image) return;
+    artist_image.classList.add('reveal');
+  })
+}
+
+
+async function loadImages() {
+  const spotifyFetchToast = document.getElementById('spotifyFetchToast')
+  const toast = bootstrap.Toast.getOrCreateInstance(spotifyFetchToast)
+
+  toast.show()
+  await Promise.all([loadTrackImages(), loadArtistImages()]);
+  setImages();
+  toast.hide()
+}
+
+animatePath();
+loadImages();
   
 if (error_message) {
   const errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
