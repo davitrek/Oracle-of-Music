@@ -149,7 +149,7 @@ spotify_request_manager = SpotifyRequestManager()
 def search_spotify(
     url: str, params: dict | None = None, max_retries: int = 5
 ) -> dict:
-    spotify_request_manager.search_spotify(url, params, max_retries)
+    return spotify_request_manager.search_spotify(url, params, max_retries)
 
 
 class ForTesting:
