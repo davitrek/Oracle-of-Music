@@ -1,5 +1,6 @@
 \set ON_ERROR_STOP 1
-\set mbdump_location '.' -- '/path/to/directory/containing/mbdump
+\set mbdump_location '/var/lib/postgresql/data/here'
+                    --/path/to/directory/containing/mbdump
 
 BEGIN;
 

@@ -1,5 +1,7 @@
 * SQL scripts adapted from https://github.com/metabrainz/mbdata/ * 
 
+DB takes about ~40GB storage!
+
 1. Set environment variables ${POSTGRES_DOCKER_VOLUME_LOCAL_PATH} and 
     ${POSTGRES_PASSWORD}
     -> folder pointed to by ${POSTGRES_DOCKER_VOLUME_LOCAL_PATH} needs to be EMPTY

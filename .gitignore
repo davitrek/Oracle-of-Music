@@ -12,3 +12,4 @@ __pycache__
 /scrapednames.txt
 /sql
 /subset_sql
+/deploy_database_with_commented_out_code
