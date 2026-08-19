@@ -1,11 +1,10 @@
 from collections import defaultdict
 
-from sqlalchemy import select
-from sqlalchemy.dialects.postgresql import insert
-
-import db_operations
+from data import db_operations
 from db import db
 from models import ArtistAdjacents
+from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert
 
 
 def build_adjacency_list(number_artists: int) -> defaultdict[set]:

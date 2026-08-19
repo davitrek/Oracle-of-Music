@@ -1,7 +1,7 @@
-import db_operations
-import spotify
 from config import Config
+from data import db_operations
 from data_classes import WebImage
+from integrations import spotify
 from models import Artist
 
 

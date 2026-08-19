@@ -3,14 +3,9 @@ import re
 # from sqlalchemy.dialects.postgresql import insert
 from collections import defaultdict
 
-# from time import time
-# import sqlalchemy.exc
-from sqlalchemy import func, select, union
-from sqlalchemy.orm import aliased
-
+import globals
 from config import Config
 from db import db
-from globals import Globals
 from models import (
     URL,
     Artist,
@@ -31,6 +26,11 @@ from models import (
     ReleaseStatus,
     Track,
 )
+
+# from time import time
+# import sqlalchemy.exc
+from sqlalchemy import func, select, union
+from sqlalchemy.orm import aliased
 
 excluded_join_phrases = None
 
@@ -451,7 +451,7 @@ def fetch_artist_typeahead(query: str) -> list[dict]:
                 func.lower(func.musicbrainz_unaccent(query))
             )
         )
-        .where(Artist.id.in_(list(Globals.adj_list.keys())))
+        .where(Artist.id.in_(list(globals.adj_list.keys())))
         .limit(Config.TYPEAHEAD_LIMIT)
     )
 
@@ -467,7 +467,7 @@ def fetch_artist_typeahead(query: str) -> list[dict]:
                 func.lower(func.musicbrainz_unaccent(query))
             )
         )
-        .where(Artist.id.in_(list(Globals.adj_list.keys())))
+        .where(Artist.id.in_(list(globals.adj_list.keys())))
         .distinct(Artist.id)
         .limit(Config.TYPEAHEAD_LIMIT)
     )

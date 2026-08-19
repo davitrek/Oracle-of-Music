@@ -1,15 +1,13 @@
-from flask import Flask, render_template, request
-from werkzeug.middleware.proxy_fix import ProxyFix
-
-import adjacency_list
-import db_operations
-import find_path
+import globals
 import layout
-import spotify
 from config import Config
+from data import db_operations
 from data_classes import ArtistHTMLData, SVGLocation, TrackHTMLData
 from db import db
-from globals import Globals
+from flask import Flask, render_template, request
+from graph import adjacency_list, find_path
+from integrations import spotify
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 # create the app
 app = Flask(__name__)
@@ -59,7 +57,7 @@ def findpath():
         )
 
     path_artists = find_path.build_artist_path(
-        Globals.adj_list, artist_start.id, artist_end.id
+        globals.adj_list, artist_start.id, artist_end.id
     )
 
     if not path_artists:
@@ -222,7 +220,7 @@ def track_spotify_info():
 
 
 with app.app_context():
-    Globals.adj_list = adjacency_list.build_adjacency_list(
+    globals.adj_list = adjacency_list.build_adjacency_list(
         Config.ARTISTS_TO_LOAD
     )
 

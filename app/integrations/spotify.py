@@ -1,15 +1,14 @@
 import re
 from time import sleep, time
 
-import requests
-from rapidfuzz import fuzz, utils
-from requests import Response
-
-import db_operations
 import exceptions
 import helpers
+import requests
 from config import Config
+from data import db_operations
 from data_classes import WebImage
+from rapidfuzz import fuzz, utils
+from requests import Response
 
 
 class SpotifyRequestManager:
@@ -152,10 +151,6 @@ def search_spotify(
     return spotify_request_manager.search_spotify(url, params, max_retries)
 
 
-class ForTesting:
-    qs = {}  # noqa: RUF012
-
-
 def log_spotify_query(url: str, params: dict) -> None:
     s = "Querying Spotify: " + url
     if params:
@@ -167,11 +162,6 @@ def log_spotify_query(url: str, params: dict) -> None:
         log_url = (
             log_url + str(params.get("q", "")) + str(params.get("offset", ""))
         )
-
-    if ForTesting.qs.get(log_url, ""):
-        print("Querying Spotify: Re-querying same url!")
-    else:
-        ForTesting.qs[url] = 1
 
     print(s)
 

@@ -2,6 +2,7 @@
 
 # [1]: https://github.com/metabrainz/mbdata/tree/main
 
+from db import db
 from mbdata.types import (
     SMALLINT,
     UUID,
@@ -26,12 +27,9 @@ from sqlalchemy.orm import (
     relationship,
 )
 
-from db import db
-
 
 class ArtistAdjacents(db.Model):
     __tablename__ = "artist_adjacents"
-    # Mapped[xyz] can be omitted        mapped_column can be omitted -> type and attributes will be inferred
     artist0_id: Mapped[int] = mapped_column(primary_key=True)
     artist1_id: Mapped[int] = mapped_column(primary_key=True)
 
@@ -60,28 +58,15 @@ class Artist(db.Model):
     end_date_year = Column(SMALLINT)
     end_date_month = Column(SMALLINT)
     end_date_day = Column(SMALLINT)
-    # type_id = Column('type', Integer, ForeignKey(apply_schema('artist_type.id', 'musicbrainz'), name='artist_fk_type'))
     area_id = Column("area", Integer)
-    # area_id = Column('area', Integer, ForeignKey(apply_schema('area.id', 'musicbrainz'), name='artist_fk_area'))
-    # gender_id = Column('gender', Integer, ForeignKey(apply_schema('gender.id', 'musicbrainz'), name='artist_fk_gender'))
     comment = Column(
         String(255), nullable=False, default="", server_default=sql.text("''")
     )
-    # edits_pending = Column(Integer, nullable=False, default=0, server_default=sql.text('0'))
-    # last_updated = Column(DateTime(timezone=True), server_default=sql.func.now())
     ended = Column(
         Boolean, nullable=False, default=False, server_default=sql.false()
     )
     begin_area_id = Column("begin_area", Integer)
-    # begin_area_id = Column('begin_area', Integer, ForeignKey(apply_schema('area.id', 'musicbrainz'), name='artist_fk_begin_area'))
     end_area_id = Column("end_area", Integer)
-    # end_area_id = Column('end_area', Integer, ForeignKey(apply_schema('area.id', 'musicbrainz'), name='artist_fk_end_area'))
-
-    # type = relationship('ArtistType', foreign_keys=[type_id])
-    # area = relationship('Area', foreign_keys=[area_id])
-    # gender = relationship('Gender', foreign_keys=[gender_id])
-    # begin_area = relationship('Area', foreign_keys=[begin_area_id])
-    # end_area = relationship('Area', foreign_keys=[end_area_id])
 
     begin_date = composite(
         PartialDate, begin_date_year, begin_date_month, begin_date_day
@@ -106,12 +91,8 @@ class ArtistAlias(db.Model):
         ForeignKey("musicbrainz.artist.id", name="artist_alias_fk_artist"),
         nullable=False,
     )
-    # artist_id = Column('artist', Integer, ForeignKey(apply_schema('artist.id', 'musicbrainz'), name='artist_alias_fk_artist'), nullable=False)
     name = Column(String, nullable=False)
     locale = Column(String)
-    # edits_pending = Column(Integer, nullable=False, default=0, server_default=sql.text('0'))
-    # last_updated = Column(DateTime(timezone=True), server_default=sql.func.now())
-    # type_id = Column('type', Integer, ForeignKey(apply_schema('artist_alias_type.id', 'musicbrainz'), name='artist_alias_fk_type'))
     sort_name = Column(String, nullable=False)
     begin_date_year = Column(SMALLINT)
     begin_date_month = Column(SMALLINT)
@@ -127,7 +108,6 @@ class ArtistAlias(db.Model):
     )
 
     artist = relationship("Artist", foreign_keys=[artist_id], innerjoin=True)
-    # type = relationship('ArtistAliasType', foreign_keys=[type_id])
 
     begin_date = composite(
         PartialDate, begin_date_year, begin_date_month, begin_date_day
@@ -157,13 +137,10 @@ class Recording(db.Model):
         ),
         nullable=False,
     )
-    # artist_credit_id = Column('artist_credit', Integer, ForeignKey(apply_schema('artist_credit.id', 'musicbrainz'), name='recording_fk_artist_credit'), nullable=False)
     length = Column(Integer)
     comment = Column(
         String(255), nullable=False, default="", server_default=sql.text("''")
     )
-    # edits_pending = Column(Integer, nullable=False, default=0, server_default=sql.text('0'))
-    # last_updated = Column(DateTime(timezone=True), server_default=sql.func.now())
     video = Column(
         Boolean, nullable=False, default=False, server_default=sql.false()
     )
@@ -195,7 +172,6 @@ class LinkArtistRecording(db.Model):
         ForeignKey("musicbrainz.link.id", name="l_artist_recording_fk_link"),
         nullable=False,
     )
-    # link_id = Column('link', Integer, ForeignKey(apply_schema('link.id', 'musicbrainz'), name='l_artist_recording_fk_link'), nullable=False)
     entity0_id = Column(
         "entity0",
         Integer,
@@ -204,7 +180,6 @@ class LinkArtistRecording(db.Model):
         ),
         nullable=False,
     )
-    # entity0_id = Column('entity0', Integer, ForeignKey(apply_schema('artist.id', 'musicbrainz'), name='l_artist_recording_fk_entity0'), nullable=False)
     entity1_id = Column(
         "entity1",
         Integer,
@@ -213,9 +188,6 @@ class LinkArtistRecording(db.Model):
         ),
         nullable=False,
     )
-    # entity1_id = Column('entity1', Integer, ForeignKey(apply_schema('recording.id', 'musicbrainz'), name='l_artist_recording_fk_entity1'), nullable=False)
-    # edits_pending = Column(Integer, nullable=False, default=0, server_default=sql.text('0'))
-    # last_updated = Column(DateTime(timezone=True), server_default=sql.func.now())
     link_order = Column(
         Integer, nullable=False, default=0, server_default=sql.text("0")
     )
@@ -271,23 +243,18 @@ class LinkArtistArtist(db.Model):
         ForeignKey("musicbrainz.link.id", name="l_artist_artist_fk_link"),
         nullable=False,
     )
-    # link_id = Column('link', Integer, ForeignKey(apply_schema('link.id', 'musicbrainz'), name='l_artist_artist_fk_link'), nullable=False)
     entity0_id = Column(
         "entity0",
         Integer,
         ForeignKey("musicbrainz.artist.id", name="l_artist_artist_fk_entity0"),
         nullable=False,
     )
-    # entity0_id = Column('entity0', Integer, ForeignKey(apply_schema('artist.id', 'musicbrainz'), name='l_artist_artist_fk_entity0'), nullable=False)
     entity1_id = Column(
         "entity1",
         Integer,
         ForeignKey("musicbrainz.artist.id", name="l_artist_artist_fk_entity1"),
         nullable=False,
     )
-    # entity1_id = Column('entity1', Integer, ForeignKey(apply_schema('artist.id', 'musicbrainz'), name='l_artist_artist_fk_entity1'), nullable=False)
-    # edits_pending = Column(Integer, nullable=False, default=0, server_default=sql.text('0'))
-    # last_updated = Column(DateTime(timezone=True), server_default=sql.func.now())
     link_order = Column(
         Integer, nullable=False, default=0, server_default=sql.text("0")
     )
@@ -332,7 +299,6 @@ class LinkType(db.Model):
         Integer,
         ForeignKey("musicbrainz.link_type.id", name="link_type_fk_parent"),
     )
-    # parent_id = Column('parent', Integer, ForeignKey(apply_schema('link_type.id', 'musicbrainz'), name='link_type_fk_parent'))
     child_order = Column(
         Integer, nullable=False, default=0, server_default=sql.text("0")
     )
@@ -344,7 +310,6 @@ class LinkType(db.Model):
     link_phrase = Column(String(255), nullable=False)
     reverse_link_phrase = Column(String(255), nullable=False)
     long_link_phrase = Column(String(255), nullable=False)
-    # last_updated = Column(DateTime(timezone=True), server_default=sql.func.now())
     is_deprecated = Column(
         Boolean, nullable=False, default=False, server_default=sql.false()
     )
@@ -375,7 +340,6 @@ class Link(db.Model):
         ForeignKey("musicbrainz.link_type.id", name="link_fk_link_type"),
         nullable=False,
     )
-    # link_type_id = Column('link_type', Integer, ForeignKey(apply_schema('link_type.id', 'musicbrainz'), name='link_fk_link_type'), nullable=False)
     begin_date_year = Column(SMALLINT)
     begin_date_month = Column(SMALLINT)
     begin_date_day = Column(SMALLINT)
@@ -438,7 +402,6 @@ class ArtistCreditName(db.Model):
         nullable=False,
         primary_key=True,
     )
-    # artist_credit_id = Column('artist_credit', Integer, ForeignKey(apply_schema('artist_credit.id', 'musicbrainz'), name='artist_credit_name_fk_artist_credit', ondelete='CASCADE'), nullable=False, primary_key=True)
     position = Column(SMALLINT, nullable=False, primary_key=True)
     artist_id = Column(
         "artist",
@@ -450,7 +413,6 @@ class ArtistCreditName(db.Model):
         ),
         nullable=False,
     )
-    # artist_id = Column('artist', Integer, ForeignKey(apply_schema('artist.id', 'musicbrainz'), name='artist_credit_name_fk_artist', ondelete='CASCADE'), nullable=False)
     name = Column(String, nullable=False)
     join_phrase = Column(
         String, nullable=False, default="", server_default=sql.text("''")
@@ -482,14 +444,12 @@ class Track(db.Model):
         ForeignKey("musicbrainz.recording.id", name="track_fk_recording"),
         nullable=False,
     )
-    # recording_id = Column('recording', Integer, ForeignKey(apply_schema('recording.id', 'musicbrainz'), name='track_fk_recording'), nullable=False)
     medium_id = Column(
         "medium",
         Integer,
         ForeignKey("musicbrainz.medium.id", name="track_fk_medium"),
         nullable=False,
     )
-    # medium_id = Column('medium', Integer, ForeignKey(apply_schema('medium.id', 'musicbrainz'), name='track_fk_medium'), nullable=False)
     position = Column(Integer, nullable=False)
     number = Column(String, nullable=False)
     name = Column(String, nullable=False)
@@ -501,10 +461,7 @@ class Track(db.Model):
         ),
         nullable=False,
     )
-    # artist_credit_id = Column('artist_credit', Integer, ForeignKey(apply_schema('artist_credit.id', 'musicbrainz'), name='track_fk_artist_credit'), nullable=False)
     length = Column(Integer)
-    # edits_pending = Column(Integer, nullable=False, default=0, server_default=sql.text('0'))
-    # last_updated = Column(DateTime(timezone=True), server_default=sql.func.now())
     is_data_track = Column(
         Boolean, nullable=False, default=False, server_default=sql.false()
     )
@@ -541,15 +498,10 @@ class Medium(db.Model):
         ForeignKey("musicbrainz.release.id", name="medium_fk_release"),
         nullable=False,
     )
-    # release_id = Column('release', Integer, ForeignKey(apply_schema('release.id', 'musicbrainz'), name='medium_fk_release'), nullable=False)
     position = Column(Integer, nullable=False)
-    # format_id = Column('format', Integer, ForeignKey('musicbrainz.medium_format.id', name='medium_fk_format'))
-    # format_id = Column('format', Integer, ForeignKey(apply_schema('medium_format.id', 'musicbrainz'), name='medium_fk_format'))
     name = Column(
         String, nullable=False, default="", server_default=sql.text("''")
     )
-    # edits_pending = Column(Integer, nullable=False, default=0, server_default=sql.text('0'))
-    # last_updated = Column(DateTime(timezone=True), server_default=sql.func.now())
     track_count = Column(
         Integer, nullable=False, default=0, server_default=sql.text("0")
     )
@@ -561,7 +513,6 @@ class Medium(db.Model):
         innerjoin=True,
         backref=backref("mediums", order_by="Medium.position"),
     )
-    # format = relationship('MediumFormat', foreign_keys=[format_id])
 
 
 class ReleaseGroup(db.Model):
@@ -585,7 +536,6 @@ class ReleaseGroup(db.Model):
         ),
         nullable=False,
     )
-    # artist_credit_id = Column('artist_credit', Integer, ForeignKey(apply_schema('artist_credit.id', 'musicbrainz'), name='release_group_fk_artist_credit'), nullable=False)
     type_id = Column(
         "type",
         Integer,
@@ -594,7 +544,6 @@ class ReleaseGroup(db.Model):
             name="release_group_fk_type",
         ),
     )
-    # type_id = Column('type', Integer, ForeignKey(apply_schema('release_group_primary_type.id', 'musicbrainz'), name='release_group_fk_type'))
     comment = Column(
         String(255), nullable=False, default="", server_default=sql.text("''")
     )
@@ -628,7 +577,6 @@ class ReleaseGroupPrimaryType(db.Model):
             name="release_group_primary_type_fk_parent",
         ),
     )
-    # parent_id = Column('parent', Integer, ForeignKey(apply_schema('release_group_primary_type.id', 'musicbrainz'), name='release_group_primary_type_fk_parent'))
     child_order = Column(
         Integer, nullable=False, default=0, server_default=sql.text("0")
     )
@@ -654,7 +602,6 @@ class ReleaseStatus(db.Model):
             "musicbrainz.release_status.id", name="release_status_fk_parent"
         ),
     )
-    # parent_id = Column('parent', Integer, ForeignKey(apply_schema('release_status.id', 'musicbrainz'), name='release_status_fk_parent'))
     child_order = Column(
         Integer, nullable=False, default=0, server_default=sql.text("0")
     )
@@ -685,7 +632,6 @@ class Release(db.Model):
         ),
         nullable=False,
     )
-    # artist_credit_id = Column('artist_credit', Integer, ForeignKey(apply_schema('artist_credit.id', 'musicbrainz'), name='release_fk_artist_credit'), nullable=False)
     release_group_id = Column(
         "release_group",
         Integer,
@@ -694,13 +640,11 @@ class Release(db.Model):
         ),
         nullable=False,
     )
-    # release_group_id = Column('release_group', Integer, ForeignKey(apply_schema('release_group.id', 'musicbrainz'), name='release_fk_release_group'), nullable=False)
     status_id = Column(
         "status",
         Integer,
         ForeignKey("musicbrainz.release_status.id", name="release_fk_status"),
     )
-    # status_id = Column('status', Integer, ForeignKey(apply_schema('release_status.id', 'musicbrainz'), name='release_fk_status'))
     packaging_id = Column(
         "packaging",
         Integer,
@@ -708,19 +652,16 @@ class Release(db.Model):
             "musicbrainz.release_packaging.id", name="release_fk_packaging"
         ),
     )
-    # packaging_id = Column('packaging', Integer, ForeignKey(apply_schema('release_packaging.id', 'musicbrainz'), name='release_fk_packaging'))
     language_id = Column(
         "language",
         Integer,
         ForeignKey("musicbrainz.language.id", name="release_fk_language"),
     )
-    # language_id = Column('language', Integer, ForeignKey(apply_schema('language.id', 'musicbrainz'), name='release_fk_language'))
     script_id = Column(
         "script",
         Integer,
         ForeignKey("musicbrainz.script.id", name="release_fk_script"),
     )
-    # script_id = Column('script', Integer, ForeignKey(apply_schema('script.id', 'musicbrainz'), name='release_fk_script'))
     barcode = Column(String(255))
     comment = Column(
         String(255), nullable=False, default="", server_default=sql.text("''")
@@ -742,9 +683,6 @@ class Release(db.Model):
         "ReleaseGroup", foreign_keys=[release_group_id], innerjoin=True
     )
     status = relationship("ReleaseStatus", foreign_keys=[status_id])
-    # packaging = relationship('ReleasePackaging', foreign_keys=[packaging_id])
-    # language = relationship('Language', foreign_keys=[language_id])
-    # script = relationship('Script', foreign_keys=[script_id])
 
 
 class ReleaseGroupSecondaryType(db.Model):
@@ -764,7 +702,6 @@ class ReleaseGroupSecondaryType(db.Model):
             name="release_group_secondary_type_fk_parent",
         ),
     )
-    # parent_id = Column('parent', Integer, ForeignKey(apply_schema('release_group_secondary_type.id', 'musicbrainz'), name='release_group_secondary_type_fk_parent'))
     child_order = Column(
         Integer, nullable=False, default=0, server_default=sql.text("0")
     )
@@ -788,7 +725,6 @@ class ReleaseGroupSecondaryTypeJoin(db.Model):
         nullable=False,
         primary_key=True,
     )
-    # release_group_id = Column('release_group', Integer, ForeignKey(apply_schema('release_group.id', 'musicbrainz'), name='release_group_secondary_type_join_fk_release_group'), nullable=False, primary_key=True)
     secondary_type_id = Column(
         "secondary_type",
         Integer,
@@ -800,7 +736,6 @@ class ReleaseGroupSecondaryTypeJoin(db.Model):
         nullable=False,
         primary_key=True,
     )
-    # secondary_type_id = Column('secondary_type', Integer, ForeignKey(apply_schema('release_group_secondary_type.id', 'musicbrainz'), name='release_group_secondary_type_join_fk_secondary_type'), nullable=False, primary_key=True)
     created = Column(
         DateTime(timezone=True), nullable=False, server_default=sql.func.now()
     )
@@ -829,8 +764,6 @@ class URL(db.Model):
     id = Column(Integer, primary_key=True)
     gid = Column(UUID, nullable=False)
     url = Column(String, nullable=False)
-    # edits_pending = Column(Integer, nullable=False, default=0, server_default=sql.text('0'))
-    # last_updated = Column(DateTime(timezone=True), server_default=sql.func.now())
 
 
 class LinkArtistURL(db.Model):
@@ -855,23 +788,18 @@ class LinkArtistURL(db.Model):
         ForeignKey("musicbrainz.link.id", name="l_artist_url_fk_link"),
         nullable=False,
     )
-    # link_id = Column('link', Integer, ForeignKey(apply_schema('link.id', 'musicbrainz'), name='l_artist_url_fk_link'), nullable=False)
     entity0_id = Column(
         "entity0",
         Integer,
         ForeignKey("musicbrainz.artist.id", name="l_artist_url_fk_entity0"),
         nullable=False,
     )
-    # entity0_id = Column('entity0', Integer, ForeignKey(apply_schema('artist.id', 'musicbrainz'), name='l_artist_url_fk_entity0'), nullable=False)
     entity1_id = Column(
         "entity1",
         Integer,
         ForeignKey("musicbrainz.url.id", name="l_artist_url_fk_entity1"),
         nullable=False,
     )
-    # entity1_id = Column('entity1', Integer, ForeignKey(apply_schema('url.id', 'musicbrainz'), name='l_artist_url_fk_entity1'), nullable=False)
-    # edits_pending = Column(Integer, nullable=False, default=0, server_default=sql.text('0'))
-    # last_updated = Column(DateTime(timezone=True), server_default=sql.func.now())
     link_order = Column(
         Integer, nullable=False, default=0, server_default=sql.text("0")
     )
@@ -921,8 +849,6 @@ class ReleaseLabel(db.Model):
         ),
         nullable=False,
     )
-    # release_id = Column("release", Integer, ForeignKey(apply_schema("release.id", "musicbrainz"), name="release_label_fk_release",), nullable=False,)
-
     label_id = Column(
         "label",
         Integer,
@@ -931,7 +857,6 @@ class ReleaseLabel(db.Model):
             name="release_label_fk_label",
         ),
     )
-    # label_id = Column( "label", Integer, ForeignKey( apply_schema("label.id", "musicbrainz"), name="release_label_fk_label",),)
     catalog_number = Column(String(255))
     last_updated = Column(
         DateTime(timezone=True), server_default=sql.func.now()
@@ -943,4 +868,3 @@ class ReleaseLabel(db.Model):
         innerjoin=True,
         backref=backref("labels"),
     )
-    # label = relationship("Label", foreign_keys=[label_id])

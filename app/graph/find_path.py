@@ -1,10 +1,10 @@
 from collections import defaultdict, deque
 from itertools import pairwise
 
-import db_operations
 import helpers
-import spotify
+from data import db_operations
 from data_classes import ArtistInfo, TrackInfo
+from integrations import spotify
 from models import Artist
 
 # import sqlalchemy.exc # for errors
@@ -158,30 +158,16 @@ def bfsConnected(adj, src, visited, res, target):
                 q.append(x)
 
 
-from time import time
-
-
 # creates list of TrackInfo that can be used to traverse corresponding artist path
 # from root to target
 def build_track_path(artist_path: list[ArtistInfo]) -> list[TrackInfo]:
     track_path = []
 
     for artist1, artist2 in pairwise(artist_path):
-        a = time()
         collab_tracks = db_operations.fetch_collaborated_tracks(
             artist1.mbid, artist2.mbid
         )
-        b = time()
-        ab = b - a
-        # 0.15 s w/ additional filters
         for collab_track in collab_tracks:
-            # TODO: This also takes about a second from the API lookup (doubles total lookup time)
-            #   lookup
-            a = time()
-            # spotify_track = spotify.fetch_track(collab_track)
-            b = time()
-            ab = b - a
-
             track_path.append(
                 TrackInfo(
                     mbid=collab_track.id,
@@ -192,38 +178,7 @@ def build_track_path(artist_path: list[ArtistInfo]) -> list[TrackInfo]:
                 ),
             )
             break
-
-        #     # if spotify has an equivalent to this MusicBrainz track, use it for
-        #     # the path that will be displayed
-        #     if spotify_track:
-        #         track_path.append(
-        #             TrackInfo(
-        #                 mbid=collab_track.id,
-        #                 spotify_id=spotify_track["id"],
-        #                 name=collab_track.name,
-        #                 artists=collab_track.artist_credit.name,
-        #                 album_art=spotify.fetch_best_track_image(
-        #                     spotify_track["id"]
-        #                 ),
-        #             )
-        #         )
-        #         break
-        # else:
-        #     # assert 0  # no tracks in MusicBrainz DB could be found on Spotify!
-        #     track_path.append(
-        #         TrackInfo(
-        #             mbid=collab_tracks[0].id,
-        #             spotify_id=None,
-        #             name=collab_tracks[0].name,
-        #             artists=collab_tracks[0].artist_credit.name,
-        #             album_art=None,
-        #         )
-        #     )
-
     return track_path
-
-
-from time import time
 
 
 def build_artist_path(
@@ -237,25 +192,12 @@ def build_artist_path(
         return None
 
     for db_artist in db_artist_link:
-        # TODO: searching artist here takes up to a second -> would rather
-        #   get page ready, then defer the animation until JS gets the images
-        #   from Spotify
-        a = time()
-        spotify_artist = None  # find_spotify_artist(db_artist)
-        b = time()
-        ab = b - a
         artist_info = ArtistInfo(
             mbid=db_artist.id,
             name=db_artist.name,
             spotify_id=None,
             picture=None,
         )
-
-        if spotify_artist:
-            artist_info.spotify_id = spotify_artist["id"]
-            artist_info.picture = spotify.select_best_artist_image(
-                spotify_artist
-            )
 
         artist_path.append(artist_info)
 
