@@ -6,7 +6,7 @@ document.body.appendChild(tooltip);
 document.querySelectorAll('.path-node-artist, .path-node-track').forEach(node => {
   node.addEventListener('mouseenter', () => {
     if (node.classList.contains('path-node-track')) {
-      tooltip.innerHTML = `<span class="tooltip-title">${node.dataset.name}</span><br><span class="tooltip-subtext">${node.dataset.artists}</span>`;
+      tooltip.innerHTML = `<span class="tooltip-title">${node.dataset.name}</span><br><span class="tooltip-subtext">${node.dataset.artistCredit}</span>`;
     } else {
       tooltip.innerHTML = `<span class="tooltip-title">${node.dataset.name}</span>`;
     }

@@ -56,7 +56,7 @@
       {% endfor %}
       
       {% for track_data in track_datas %}
-        <g class="path-node path-node-track" data-name="{{ track_data.track.name }}" data-artists="{{ track_data.track.artists }}" data-path-index="{{ track_data.path_index }}">
+        <g class="path-node path-node-track" data-name="{{ track_data.track.name }}" data-artist-credit="{{ track_data.track.artist_credit }}" data-path-index="{{ track_data.path_index }}">
           <defs>
             <pattern id="trackImg{{ track_data.track.mbid }}" patternUnits="objectBoundingBox" width="1" height="1">
               <image class="track-image" data-mbid="{{ track_data.track.mbid }}" href="{{ url_for('static', filename='images/missing_album_art.png') }}" x="0" y="0" width="{{ track_data.square_size }}" height="{{ track_data.square_size }}" preserveAspectRatio="xMidYMid slice"/>

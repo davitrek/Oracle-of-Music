@@ -24,7 +24,7 @@ class TrackInfo:
     spotify_id: str | None  # id of track on Spotify
 
     name: str
-    artists: str  # full artist credit (e.g., Kanye West, Pusha T feat. Jay-Z)
+    artist_credit: str  # full Artist credit (e.g., Kanye West, Pusha T feat. Jay-Z)
 
     album_art: WebImage | None
 

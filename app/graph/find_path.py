@@ -173,7 +173,7 @@ def build_track_path(artist_path: list[ArtistInfo]) -> list[TrackInfo]:
                     mbid=collab_track.id,
                     spotify_id=None,
                     name=collab_track.name,
-                    artists=collab_track.artist_credit.name,
+                    artist_credit=collab_track.artist_credit.name,
                     album_art=None,
                 ),
             )
