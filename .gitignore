@@ -10,6 +10,6 @@ __pycache__
 /missingnames.txt
 /pgdata
 /scrapednames.txt
-/sql
+/reference_sql_scripts
 /subset_sql
 /deploy_database_with_commented_out_code
