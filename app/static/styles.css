@@ -101,14 +101,6 @@ h1, h2, h3, .node-label {
 
 /* three rows: track label above, image on the centre line, artist label below */
 .path-node {
-  display: grid;
-  grid-template-rows:
-    calc(var(--path-label-lines) * 1.25em + var(--path-label-gap))
-    var(--path-artist-size)
-    calc(var(--path-label-lines) * 1.25em + var(--path-label-gap));
-  grid-template-columns: minmax(0, 1fr);
-  justify-items: center;
-  align-items: center;
   flex: none;
   font-size: var(--path-label-size);
   cursor: pointer;
@@ -120,12 +112,20 @@ h1, h2, h3, .node-label {
   transform: scale(var(--path-hover-scale));
 }
 
+/* the link is the grid (not display: contents) so it keeps a box and can take focus */
 .path-node > a {
-  display: contents;
+  display: grid;
+  grid-template-rows:
+    calc(var(--path-label-lines) * 1.25em + var(--path-label-gap))
+    var(--path-artist-size)
+    calc(var(--path-label-lines) * 1.25em + var(--path-label-gap));
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  align-items: center;
   color: inherit;
   text-decoration: none;
 }
-.path-node:has(> a:focus-visible) {
+.path-node > a:focus-visible {
   outline: 3px solid var(--text-primary);
   outline-offset: 4px;
   border-radius: 8px;
