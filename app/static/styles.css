@@ -20,7 +20,7 @@
   --path-label-width: 9rem;
   --path-label-gap: 0.5rem;
   --path-connector-style: 3px dashed var(--accent);
-  --path-connector-margin: 0.5rem;
+  --path-connector-margin: 0;
   --path-hover-scale: 1.12;
   --path-hover-time: 0.15s;
   --path-reveal-time: 0.4s;
