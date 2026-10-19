@@ -25,6 +25,8 @@
   --path-hover-time: 0.15s;
   --path-reveal-time: 0.4s;
   --path-reveal-step: 0.15s;
+  --path-draw-time: 0.5s;
+  --path-connector-draw-clip: inset(0 100% 0 0);  /* draw left to right */
   --path-vertical-artist-size: 80px;
   --path-vertical-track-size: 60px;
   --path-vertical-width: 28rem;
@@ -220,7 +222,7 @@ h1, h2, h3, .node-label {
   min-width: 1rem;
   margin: 0 var(--path-connector-margin);
   border-top: var(--path-connector-style);
-  animation: path-fade var(--path-reveal-time) ease-out backwards;
+  animation: path-draw var(--path-draw-time) ease-out backwards;
   animation-delay: calc(var(--i) * var(--path-reveal-step));
 }
 
@@ -323,6 +325,7 @@ h1, h2, h3, .node-label {
     border-top: none;
     border-left: var(--path-connector-style);
     transform: translateX(-50%);
+    --path-connector-draw-clip: inset(0 0 100% 0);  /* top to bottom */
   }
 }
 
@@ -330,17 +333,10 @@ h1, h2, h3, .node-label {
   from { opacity: 0; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .path-node, .path-connector {
-    animation: none;
-    transition: none;
-  }
-  .path-node:hover, .path-node:hover .node-image {
-    transform: none;
-  }
-  .node-image {
-    transition: none;
-  }
+/* clip-path can't interpolate to none, so the end state is spelled out */
+@keyframes path-draw {
+  from { opacity: 0; clip-path: var(--path-connector-draw-clip); }
+  to { clip-path: inset(0); }
 }
 
 .path-tooltip {
@@ -358,6 +354,20 @@ h1, h2, h3, .node-label {
 }
 .tooltip-title {
   font-weight: 600;
+}
+
+/* last among the Path rules, so it overrides every animation and transition above */
+@media (prefers-reduced-motion: reduce) {
+  .path-node, .path-connector {
+    animation: none;
+    transition: none;
+  }
+  .path-node:hover, .path-node:hover .node-image {
+    transform: none;
+  }
+  .node-image, .path-tooltip {
+    transition: none;
+  }
 }
 
 .hero-overlay {

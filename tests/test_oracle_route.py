@@ -104,13 +104,15 @@ def test_no_path_found_shows_error(client, known_artists, monkeypatch):
 
 
 class PathParser(HTMLParser):
-    """Collects the Path's data-hops, its Nodes (kind and --i index) and
-    each Node's secondary text."""
+    """Collects the Path's data-hops, its Nodes (kind and --i index), each
+    Connector's --i index paired with the --i of the Node before it, and each
+    Node's secondary text."""
 
     def __init__(self):
         super().__init__()
         self.hops = None
         self.nodes = []
+        self.connectors = []
         self.subtexts = []
         self.tags = set()
         self._in_subtext = False
@@ -121,11 +123,13 @@ class PathParser(HTMLParser):
         classes = (attrs.get("class") or "").split()
         if "path" in classes:
             self.hops = attrs.get("data-hops")
+        index = re.search(r"--i:\s*(\d+)", attrs.get("style") or "")
         for kind in ("artist", "track"):
             if f"path-node-{kind}" in classes:
-                index = re.search(r"--i:\s*(\d+)", attrs.get("style") or "")
                 self.nodes.append((kind, int(index.group(1))))
                 self.subtexts.append([])
+        if "path-connector" in classes:
+            self.connectors.append((int(index.group(1)), self.nodes[-1][1]))
         if "node-subtext" in classes:
             self._in_subtext = True
             self.subtexts[-1].append("")
@@ -159,6 +163,18 @@ def test_multi_hop_path_renders_nodes_in_path_order(
         ("track", 3),
         ("artist", 4),
     ]
+
+
+def test_connectors_reveal_with_the_node_before_them(
+    client, known_artists, monkeypatch
+):
+    stub_path(monkeypatch, [PUSHA, KANYE, JAY_Z], [RUNAWAY, SO_APPALLED])
+
+    path = parse_path(post_oracle(client, "Pusha T", "Jay-Z"))
+
+    assert len(path.connectors) == 4
+    for connector_index, node_before_index in path.connectors:
+        assert connector_index == node_before_index
 
 
 def test_path_markup_has_no_svg(client, known_artists, monkeypatch):
