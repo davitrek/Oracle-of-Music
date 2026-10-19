@@ -35,6 +35,8 @@ document.querySelectorAll('.path-node').forEach(node => {
   });
 
   node.addEventListener('focusin', () => {
+    // mouse clicks also focus; the cursor-following tooltip covers those
+    if (!node.querySelector(':focus-visible')) return;
     showTooltip(node);
     const rect = node.getBoundingClientRect();
     tooltip.style.left = `${rect.left + window.scrollX}px`;
