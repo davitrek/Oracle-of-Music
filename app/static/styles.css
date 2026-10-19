@@ -204,12 +204,12 @@ h1, h2, h3, .node-label {
   align-self: start;
 }
 
-/* keep the end labels, which are wider than their Nodes, inside the Path */
-.path-node:first-child {
-  margin-left: max(0px, (var(--path-label-width) - var(--path-artist-size)) / 2);
-}
-.path-node:last-child {
-  margin-right: max(0px, (var(--path-label-width) - var(--path-artist-size)) / 2);
+/* below the widest threshold, keep the end labels (wider than their Nodes)
+   inside the Path; wider containers leave them room in the page gutter */
+@container path (width < 69rem) {
+  .path { --path-end-inset: max(0px, (var(--path-label-width) - var(--path-artist-size)) / 2); }
+  .path-node:first-child { margin-left: var(--path-end-inset); }
+  .path-node:last-child { margin-right: var(--path-end-inset); }
 }
 .path-node:only-child {
   margin-inline: auto;
@@ -257,7 +257,7 @@ h1, h2, h3, .node-label {
     column-gap: var(--path-vertical-gap);
     justify-items: start;
   }
-  /* positioned so it paints over the line below */
+  /* positioned so it paints over the Connector drawn behind it */
   .node-image {
     position: relative;
     grid-row: 1;
@@ -309,7 +309,7 @@ h1, h2, h3, .node-label {
     display: block;
   }
 
-  /* a zero-width line on its own row, centred on the image column */
+  /* a zero-width Connector on its own row, centred on the image column */
   .path-connector {
     flex: 0 0 auto;
     width: 0;
