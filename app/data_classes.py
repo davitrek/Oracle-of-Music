@@ -28,26 +28,3 @@ class TrackInfo:
 
     album_art: WebImage | None
 
-
-@dataclass
-class SVGLocation:
-    x: float
-    y: float
-
-
-@dataclass
-class ArtistHTMLData:
-    artist: ArtistInfo
-    name_pos: SVGLocation
-    circle_pos: SVGLocation
-    circle_rad: float
-    path_index: int
-
-
-@dataclass
-class TrackHTMLData:
-    track: TrackInfo
-    name_pos: SVGLocation
-    square_pos: SVGLocation
-    square_size: float
-    path_index: int

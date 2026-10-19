@@ -1,21 +1,31 @@
-// node hover tooltip
+// node tooltip: follows the cursor on hover, sits below the node on focus
 const tooltip = document.createElement('div');
-tooltip.className = 'svg-tooltip';
+tooltip.className = 'path-tooltip';
+tooltip.setAttribute('aria-hidden', 'true');
 document.body.appendChild(tooltip);
 
-document.querySelectorAll('.path-node-artist, .path-node-track').forEach(node => {
-  node.addEventListener('mouseenter', () => {
-    if (node.classList.contains('path-node-track')) {
-      tooltip.innerHTML = `<span class="tooltip-title">${node.dataset.name}</span><br><span class="tooltip-subtext">${node.dataset.artistCredit}</span>`;
-    } else {
-      tooltip.innerHTML = `<span class="tooltip-title">${node.dataset.name}</span>`;
-    }
-    image = node.querySelector('.track-image, .artist-image');
-    if (image.href.baseVal == missing_track_art_url || image.href.baseVal == missing_artist_picture_url ) {
-      tooltip.innerHTML += '<br><span class="tooltip-subtext" style="font-style:italic">(Not on Spotify)</span>'
-    }
-    tooltip.style.opacity = '1';
-  });
+function addTooltipLine(className, text, extraStyle) {
+  const line = document.createElement('div');
+  line.className = className;
+  line.textContent = text;
+  if (extraStyle) line.style.fontStyle = extraStyle;
+  tooltip.appendChild(line);
+}
+
+function showTooltip(node) {
+  tooltip.replaceChildren();
+  addTooltipLine('tooltip-title', node.dataset.name);
+  if (node.classList.contains('path-node-track')) {
+    addTooltipLine('tooltip-subtext', node.dataset.artistCredit);
+  }
+  if (!node.querySelector('.node-image').dataset.spotify) {
+    addTooltipLine('tooltip-subtext', '(Not on Spotify)', 'italic');
+  }
+  tooltip.style.opacity = '1';
+}
+
+document.querySelectorAll('.path-node').forEach(node => {
+  node.addEventListener('mouseenter', () => showTooltip(node));
   node.addEventListener('mousemove', e => {
     tooltip.style.left = `${e.pageX + 12}px`;
     tooltip.style.top = `${e.pageY - 28}px`;
@@ -23,19 +33,17 @@ document.querySelectorAll('.path-node-artist, .path-node-track').forEach(node =>
   node.addEventListener('mouseleave', () => {
     tooltip.style.opacity = '0';
   });
-});
 
-
-
-
-// disable animations for firefox, which seems to perform poorly with them
-const isFirefox = navigator.userAgent.toLowerCase().includes('firefox');
-
-if (isFirefox) {
-  document.querySelectorAll('.path-connector, .path-node-artist, .path-node-track').forEach(el => {
-    el.classList.add('no-animation');
+  node.addEventListener('focusin', () => {
+    showTooltip(node);
+    const rect = node.getBoundingClientRect();
+    tooltip.style.left = `${rect.left + window.scrollX}px`;
+    tooltip.style.top = `${rect.bottom + window.scrollY + 8}px`;
   });
-}
+  node.addEventListener('focusout', () => {
+    tooltip.style.opacity = '0';
+  });
+});
 
 // typeahead
 function debounce(fn, delay) {
@@ -85,107 +93,41 @@ document.addEventListener('DOMContentLoaded', () => {
   setupArtistTypeahead('end', 'end-artists');
 });
 
-async function loadTrackImages() {
-  const elements = [...document.querySelectorAll('g.path-node-track')];
-  await Promise.allSettled(elements.map(async (g) => {
-    const image = g.querySelector('image[data-mbid]');
-    if (!image) return;
-
-    const mbid = image.dataset.mbid;
-    const anchor = g.querySelector('a');
+async function loadSpotifyInfo(kind) {
+  const nodes = [...document.querySelectorAll(`.path-node-${kind}`)];
+  await Promise.allSettled(nodes.map(async (node) => {
+    const image = node.querySelector('.node-image');
+    const anchor = node.querySelector('a');
 
     try {
-      const res = await fetch(`/api/track_spotify_info?mbid=${encodeURIComponent(mbid)}`);
+      const res = await fetch(`/api/${kind}_spotify_info?mbid=${encodeURIComponent(image.dataset.mbid)}`);
       if (!res.ok) return;
 
       const data = await res.json();
 
       if (data.image_url) {
-        image.setAttribute('href', data.image_url);
+        image.src = data.image_url;
+        image.dataset.spotify = 'true';
       }
-      if (anchor && data.track_url) {
-        anchor.setAttribute('href', data.track_url);
+      const url = data[`${kind}_url`];
+      if (url) {
+        anchor.href = url;
       }
     } catch (err) {
       // silently ignore failed fetch/parse
     }
   }));
 }
-
-async function loadArtistImages() {
-  const elements = [...document.querySelectorAll('g.path-node-artist')];
-  await Promise.allSettled(elements.map(async (g) => {
-    const image = g.querySelector('image[data-mbid]');
-    if (!image) return;
-
-    const mbid = image.dataset.mbid;
-    const anchor = g.querySelector('a');
-
-    try {
-      const res = await fetch(`/api/artist_spotify_info?mbid=${encodeURIComponent(mbid)}`);
-      if (!res.ok) return;
-
-      const data = await res.json();
-
-      if (data.image_url) {
-        image.setAttribute('href', data.image_url);
-      }
-      if (anchor && data.artist_url) {
-        anchor.setAttribute('href', data.artist_url);
-      }
-    } catch (err) {
-      // silently ignore failed fetch/parse
-    }
-  }));
-}
-
-function revealPathNodes() {
-  document.querySelectorAll('[data-path-index]').forEach(el => {
-    const i = parseInt(el.dataset.pathIndex, 10);
-    el.style.animationDelay = `${i * 0.15}s`;
-    el.classList.add('reveal')
-  });
-}
-
-function revealPathConnectors() {
-  document.querySelectorAll('[data-path-connector-index]').forEach(el => {
-    const i = parseInt(el.dataset.pathIndex, 10);
-    el.style.animationDelay = `${i * 0.15}s`;
-    el.classList.add('reveal')
-  });
-}
-
-function animatePath() {
-  revealPathNodes();
-  revealPathConnectors();
-}
-
-function setImages() {
-  document.querySelectorAll('g.path-node-track').forEach(g => {
-    const track_image = g.querySelector('.track-image');
-    if (!track_image) return;
-    track_image.classList.add('reveal');
-  })
-  
-  document.querySelectorAll('g.path-node-artist').forEach(g => {
-    const artist_image = g.querySelector('.artist-image');
-    if (!artist_image) return;
-    artist_image.classList.add('reveal');
-  })
-}
-
 
 async function loadImages() {
   const spotifyFetchToast = document.getElementById('spotifyFetchToast')
   const toast = bootstrap.Toast.getOrCreateInstance(spotifyFetchToast)
 
   toast.show()
-  await Promise.all([loadTrackImages(), loadArtistImages()]);
-  setImages();
+  await Promise.all([loadSpotifyInfo('track'), loadSpotifyInfo('artist')]);
   toast.hide()
 }
 
-animatePath();
 loadImages();
   
 if (error_message) {

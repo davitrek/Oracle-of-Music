@@ -1,8 +1,6 @@
 import globals
-import layout
 from config import Config
 from data import db_operations
-from data_classes import ArtistHTMLData, SVGLocation, TrackHTMLData
 from db import db
 from flask import Flask, render_template, request
 from graph import adjacency_list, find_path
@@ -65,98 +63,12 @@ def findpath():
 
     path_tracks = find_path.build_track_path(path_artists)
 
-    # ---- prepare for displaying webpage ----
-    # pad = 0
-    svg_width = 1000
-    svg_height = 200
-    # circle_radius = (svg_width - 2 * pad) / (3 * len(path_artists) - 2)
-    circle_radius = 50
-    # line_length = 25
-    square_size = round(3 / 2 * circle_radius)
-
-    # ---- set shape locations ----
-    circle_centres = layout.circle_centres(len(path_artists), svg_width)
-    circle_y_position = 100
-
-    square_centres = layout.square_centres(circle_centres)
-    square_y_position = circle_y_position - square_size / 2
-
-    square_left_edges = layout.square_left_edges(square_centres, square_size)
-
-    line_positions = layout.line_positions(
-        circle_radius, square_size, circle_centres, square_centres
-    )
-
-    artist_name_y_position = 100 + circle_radius + 20
-    artist_name_x_postions = circle_centres
-
-    track_name_y_position = 100 - circle_radius - 20
-    track_name_x_positions = square_centres
-
-    # ---- pack info for html ----
-    artist_html_data = []
-    for artist, artist_name_x_pos, artist_circle_x_pos, i in zip(
-        path_artists,
-        artist_name_x_postions,
-        circle_centres,
-        range(len(path_artists)),
-    ):
-        artist_html_data.append(
-            ArtistHTMLData(
-                artist=artist,
-                name_pos=SVGLocation(
-                    x=artist_name_x_pos,
-                    y=artist_name_y_position,
-                ),
-                circle_pos=SVGLocation(
-                    x=artist_circle_x_pos,
-                    y=circle_y_position,
-                ),
-                circle_rad=circle_radius,
-                path_index=2 * i,
-            )
-        )
-
-    track_html_data = []
-    for track, track_name_x_pos, track_square_x_pos, i in zip(
-        path_tracks,
-        track_name_x_positions,
-        square_left_edges,
-        range(len(path_tracks)),
-    ):
-        track_html_data.append(
-            TrackHTMLData(
-                track=track,
-                name_pos=SVGLocation(
-                    x=track_name_x_pos, y=track_name_y_position
-                ),
-                square_pos=SVGLocation(
-                    x=track_square_x_pos, y=square_y_position
-                ),
-                square_size=square_size,
-                path_index=2 * i + 1,
-            )
-        )
-
-    if line_positions:
-        line_first_begin = line_positions[0][0]
-        line_last_end = line_positions[-1][-1]
-    else:
-        line_first_begin = None
-        line_last_end = None
-
     return render_template(
         "findpath.html",
         is_found_path=True,
-        svg_width=svg_width,
-        svg_height=svg_height,
-        artist_datas=artist_html_data,
-        track_datas=track_html_data,
-        line_positions=line_positions,
-        spotify_artist_url=Config.SPOTIFY_USER_ARTIST_URL,
-        spotify_track_url=Config.SPOTIFY_USER_TRACK_URL,
-        line_first_begin=line_first_begin,
-        line_last_end=line_last_end,
+        path_artists=path_artists,
+        path_tracks=path_tracks,
+        hops=len(path_tracks),
     )
 
 

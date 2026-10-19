@@ -1,3 +1,5 @@
+import re
+from html.parser import HTMLParser
 from types import SimpleNamespace
 
 import pytest
@@ -99,3 +101,66 @@ def test_no_path_found_shows_error(client, known_artists, monkeypatch):
     html = post_oracle(client, "Kanye West", "Jay-Z")
 
     assert NO_PATH_FOUND in html
+
+
+class PathParser(HTMLParser):
+    """Collects the Path's data-hops and its Nodes (kind and --i index)."""
+
+    def __init__(self):
+        super().__init__()
+        self.hops = None
+        self.nodes = []
+        self.tags = set()
+
+    def handle_starttag(self, tag, attrs):
+        self.tags.add(tag)
+        attrs = dict(attrs)
+        classes = (attrs.get("class") or "").split()
+        if "path" in classes:
+            self.hops = attrs.get("data-hops")
+        for kind in ("artist", "track"):
+            if f"path-node-{kind}" in classes:
+                index = re.search(r"--i:\s*(\d+)", attrs.get("style") or "")
+                self.nodes.append((kind, int(index.group(1))))
+
+
+def parse_path(html):
+    parser = PathParser()
+    parser.feed(html)
+    return parser
+
+
+def test_multi_hop_path_renders_nodes_in_path_order(
+    client, known_artists, monkeypatch
+):
+    stub_path(monkeypatch, [PUSHA, KANYE, JAY_Z], [RUNAWAY, SO_APPALLED])
+
+    path = parse_path(post_oracle(client, "Pusha T", "Jay-Z"))
+
+    assert path.hops == "2"
+    assert path.nodes == [
+        ("artist", 0),
+        ("track", 1),
+        ("artist", 2),
+        ("track", 3),
+        ("artist", 4),
+    ]
+
+
+def test_path_markup_has_no_svg(client, known_artists, monkeypatch):
+    stub_path(monkeypatch, [PUSHA, KANYE], [RUNAWAY])
+
+    path = parse_path(post_oracle(client, "Pusha T", "Kanye West"))
+
+    assert "svg" not in path.tags
+
+
+def test_one_node_path_has_a_single_artist_node_and_zero_hops(
+    client, known_artists, monkeypatch
+):
+    stub_path(monkeypatch, [KANYE], [])
+
+    path = parse_path(post_oracle(client, "Kanye West", "Kanye West"))
+
+    assert path.hops == "0"
+    assert path.nodes == [("artist", 0)]
