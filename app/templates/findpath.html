@@ -25,7 +25,10 @@
           <li class="path-node path-node-artist" style="--i: {{ 2 * loop.index0 }}" data-name="{{ artist.name }}">
             <a tabindex="0" target="_blank" rel="noopener noreferrer">
               <img class="node-image" data-mbid="{{ artist.mbid }}" src="{{ url_for('static', filename='images/missing_artist_picture.png') }}" alt="">
-              <span class="node-label">{{ artist.name }}</span>
+              <span class="node-text">
+                <span class="node-label">{{ artist.name }}</span>
+                <span class="node-subtext node-not-on-spotify">(Not on Spotify)</span>
+              </span>
             </a>
           </li>
           {% if not loop.last %}
@@ -34,7 +37,11 @@
             <li class="path-node path-node-track" style="--i: {{ 2 * loop.index0 + 1 }}" data-name="{{ track.name }}" data-artist-credit="{{ track.artist_credit }}">
               <a tabindex="0" target="_blank" rel="noopener noreferrer">
                 <img class="node-image" data-mbid="{{ track.mbid }}" src="{{ url_for('static', filename='images/missing_album_art.png') }}" alt="">
-                <span class="node-label">{{ track.name }}</span>
+                <span class="node-text">
+                  <span class="node-label">{{ track.name }}</span>
+                  <span class="node-subtext">{{ track.artist_credit }}</span>
+                  <span class="node-subtext node-not-on-spotify">(Not on Spotify)</span>
+                </span>
               </a>
             </li>
             <li class="path-connector" aria-hidden="true" style="--i: {{ 2 * loop.index0 + 1 }}"></li>

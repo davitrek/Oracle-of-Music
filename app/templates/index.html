@@ -4,6 +4,8 @@
     Welcome!
 {% endblock %}
 
+{% block body_class %}no-scroll{% endblock %}
+
 {% block fullpage_main %}
   <div class="hero-section d-flex flex-column justify-content-center align-items-center text-center"
        style="background-image: url({{ url_for('static', filename='images/oracle_of_music.png') }}); background-size: cover; background-position: center; min-height: 100vh; position: relative;">

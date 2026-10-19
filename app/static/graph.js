@@ -117,6 +117,9 @@ async function loadSpotifyInfo(kind) {
       }
     } catch (err) {
       // silently ignore failed fetch/parse
+    } finally {
+      // lets the vertical layout show "(Not on Spotify)" once the lookup is done
+      if (!image.dataset.spotify) node.dataset.notOnSpotify = '';
     }
   }));
 }

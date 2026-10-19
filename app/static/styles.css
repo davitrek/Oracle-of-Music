@@ -25,6 +25,13 @@
   --path-hover-time: 0.15s;
   --path-reveal-time: 0.4s;
   --path-reveal-step: 0.15s;
+  --path-vertical-artist-size: 80px;
+  --path-vertical-track-size: 60px;
+  --path-vertical-width: 28rem;
+  --path-vertical-gap: 1rem;
+  --path-vertical-connector-length: 1.5rem;
+  --path-subtext-color: var(--text-secondary);
+  --path-subtext-size: 0.875rem;
 }
 
 /* ---- page-wide theme ---- */
@@ -86,18 +93,38 @@ h1, h2, h3, .node-label {
 
 /* ---- path ---- */
 .path-container {
-  container-type: inline-size;
+  container: path / inline-size;
   margin-top: 2rem;
 }
 
+/* wrap so the vertical layout can give every Node and Connector its own line */
 .path {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   list-style: none;
   margin: 0;
   padding: 0;
 }
+
+/* ---- path layout choice ----
+   The Path is vertical unless its container is wide enough to keep every
+   Node and label Legible in a row. Neighbouring Artist (and Track) labels
+   sit 2 Nodes apart, so each Hop needs one label width plus a gap, and the
+   end labels need half a label width each:
+     threshold = hops × (--path-label-width + 1rem) + --path-label-width
+   Container queries can't read custom properties, so these are literals for
+   a 9rem label; update them if --path-label-width changes. Paths of more
+   than 6 Hops are always vertical. */
+.path { --path-layout: vertical; }
+.path[data-hops="0"] { --path-layout: horizontal; }
+@container path (width >= 19rem) { .path[data-hops="1"] { --path-layout: horizontal; } }
+@container path (width >= 29rem) { .path[data-hops="2"] { --path-layout: horizontal; } }
+@container path (width >= 39rem) { .path[data-hops="3"] { --path-layout: horizontal; } }
+@container path (width >= 49rem) { .path[data-hops="4"] { --path-layout: horizontal; } }
+@container path (width >= 59rem) { .path[data-hops="5"] { --path-layout: horizontal; } }
+@container path (width >= 69rem) { .path[data-hops="6"] { --path-layout: horizontal; } }
 
 /* three rows: track label above, image on the centre line, artist label below */
 .path-node {
@@ -150,6 +177,11 @@ h1, h2, h3, .node-label {
   height: var(--path-track-size);
 }
 
+/* horizontal: the label joins the Node grid directly; secondary text is
+   left to the tooltip */
+.node-text { display: contents; }
+.node-subtext { display: none; }
+
 .node-label {
   grid-column: 1;
   width: var(--path-label-width);
@@ -172,6 +204,13 @@ h1, h2, h3, .node-label {
   align-self: start;
 }
 
+/* keep the end labels, which are wider than their Nodes, inside the Path */
+.path-node:first-child {
+  margin-left: max(0px, (var(--path-label-width) - var(--path-artist-size)) / 2);
+}
+.path-node:last-child {
+  margin-right: max(0px, (var(--path-label-width) - var(--path-artist-size)) / 2);
+}
 .path-node:only-child {
   margin-inline: auto;
 }
@@ -185,6 +224,108 @@ h1, h2, h3, .node-label {
   animation-delay: calc(var(--i) * var(--path-reveal-step));
 }
 
+/* ---- vertical path ----
+   Every Node and Connector takes a full line. Nodes share one centred box
+   width so their images sit on one vertical line, with labels to the right
+   shown in full. */
+@container style(--path-layout: vertical) {
+  .path-node, .path-connector {
+    --path-artist-size: var(--path-vertical-artist-size);
+    --path-track-size: var(--path-vertical-track-size);
+  }
+
+  .path-node,
+  .path-node:first-child,
+  .path-node:last-child {
+    flex: 0 0 100%;
+    margin: 0;
+  }
+  /* zoom only the image, so the label doesn't shift on hover */
+  .path-node:hover {
+    transform: none;
+  }
+  .path-node:hover .node-image {
+    transform: scale(var(--path-hover-scale));
+  }
+
+  .path-node > a {
+    position: relative;
+    width: min(100%, var(--path-vertical-width));
+    margin-inline: auto;
+    grid-template-rows: auto;
+    grid-template-columns: var(--path-artist-size) minmax(0, 1fr);
+    column-gap: var(--path-vertical-gap);
+    justify-items: start;
+  }
+  /* positioned so it paints over the line below */
+  .node-image {
+    position: relative;
+    grid-row: 1;
+    justify-self: center;
+    transition: transform var(--path-hover-time) ease-out;
+  }
+
+  /* continue the Connector line behind the image, so a Node whose text is
+     taller than its image leaves no gap */
+  .path-node > a::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc(var(--path-artist-size) / 2);
+    border-left: var(--path-connector-style);
+    transform: translateX(-50%);
+  }
+  .path-node:first-child > a::before { top: 50%; }
+  .path-node:last-child > a::before { bottom: 50%; }
+
+  .node-text {
+    display: flex;
+    flex-direction: column;
+    grid-row: 1;
+    grid-column: 2;
+    text-align: left;
+    overflow-wrap: anywhere;
+  }
+  .path-node .node-label {
+    display: block;
+    width: auto;
+    overflow: visible;
+    -webkit-line-clamp: none;
+    line-clamp: none;
+    text-align: left;
+    align-self: auto;
+  }
+  .node-subtext {
+    display: block;
+    color: var(--path-subtext-color);
+    font-size: var(--path-subtext-size);
+  }
+  .node-not-on-spotify {
+    display: none;
+    font-style: italic;
+  }
+  .path-node[data-not-on-spotify] .node-not-on-spotify {
+    display: block;
+  }
+
+  /* a zero-width line on its own row, centred on the image column */
+  .path-connector {
+    flex: 0 0 auto;
+    width: 0;
+    min-width: 0;
+    height: var(--path-vertical-connector-length);
+    margin: 0;
+    margin-left: calc(
+      (100% - min(100%, var(--path-vertical-width))) / 2
+      + var(--path-artist-size) / 2
+    );
+    border-top: none;
+    border-left: var(--path-connector-style);
+    transform: translateX(-50%);
+  }
+}
+
 @keyframes path-fade {
   from { opacity: 0; }
 }
@@ -194,8 +335,11 @@ h1, h2, h3, .node-label {
     animation: none;
     transition: none;
   }
-  .path-node:hover {
+  .path-node:hover, .path-node:hover .node-image {
     transform: none;
+  }
+  .node-image {
+    transition: none;
   }
 }
 
@@ -226,7 +370,9 @@ h1, h2, h3, .node-label {
   z-index: 2;
 }
 
-html, body {margin: 0; height: 100%; overflow: hidden}
+html, body {margin: 0; height: 100%}
+/* the index hero fills the screen; other pages (e.g. a tall vertical Path) scroll */
+body.no-scroll {overflow: hidden}
 
 .toast-header img {
   width: 20px;

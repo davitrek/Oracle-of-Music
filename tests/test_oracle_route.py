@@ -104,13 +104,16 @@ def test_no_path_found_shows_error(client, known_artists, monkeypatch):
 
 
 class PathParser(HTMLParser):
-    """Collects the Path's data-hops and its Nodes (kind and --i index)."""
+    """Collects the Path's data-hops, its Nodes (kind and --i index) and
+    each Node's secondary text."""
 
     def __init__(self):
         super().__init__()
         self.hops = None
         self.nodes = []
+        self.subtexts = []
         self.tags = set()
+        self._in_subtext = False
 
     def handle_starttag(self, tag, attrs):
         self.tags.add(tag)
@@ -122,6 +125,17 @@ class PathParser(HTMLParser):
             if f"path-node-{kind}" in classes:
                 index = re.search(r"--i:\s*(\d+)", attrs.get("style") or "")
                 self.nodes.append((kind, int(index.group(1))))
+                self.subtexts.append([])
+        if "node-subtext" in classes:
+            self._in_subtext = True
+            self.subtexts[-1].append("")
+
+    def handle_endtag(self, tag):
+        self._in_subtext = False
+
+    def handle_data(self, data):
+        if self._in_subtext:
+            self.subtexts[-1][-1] += data.strip()
 
 
 def parse_path(html):
@@ -164,3 +178,52 @@ def test_one_node_path_has_a_single_artist_node_and_zero_hops(
 
     assert path.hops == "0"
     assert path.nodes == [("artist", 0)]
+
+
+def test_track_nodes_show_artist_credit_as_secondary_text(
+    client, known_artists, monkeypatch
+):
+    stub_path(monkeypatch, [PUSHA, KANYE, JAY_Z], [RUNAWAY, SO_APPALLED])
+
+    path = parse_path(post_oracle(client, "Pusha T", "Jay-Z"))
+
+    track_subtexts = [
+        subtexts
+        for (kind, _), subtexts in zip(path.nodes, path.subtexts)
+        if kind == "track"
+    ]
+    assert "Kanye West feat. Pusha T" in track_subtexts[0]
+    assert (
+        "Kanye West feat. Jay-Z, Pusha T, Prynce Cy Hi, Swizz Beatz and RZA"
+        in track_subtexts[1]
+    )
+
+
+def test_every_node_has_not_on_spotify_secondary_text(
+    client, known_artists, monkeypatch
+):
+    stub_path(monkeypatch, [PUSHA, KANYE], [RUNAWAY])
+
+    path = parse_path(post_oracle(client, "Pusha T", "Kanye West"))
+
+    assert len(path.subtexts) == 3
+    for subtexts in path.subtexts:
+        assert "(Not on Spotify)" in subtexts
+
+
+def body_classes(html):
+    body = re.search(r"<body([^>]*)>", html).group(1)
+    match = re.search(r'class="([^"]*)"', body)
+    return match.group(1).split() if match else []
+
+
+def test_only_the_index_page_is_non_scrolling(
+    client, known_artists, monkeypatch
+):
+    stub_path(monkeypatch, [PUSHA, KANYE], [RUNAWAY])
+
+    index_html = client.get("/").get_data(as_text=True)
+    results_html = post_oracle(client, "Pusha T", "Kanye West")
+
+    assert "no-scroll" in body_classes(index_html)
+    assert "no-scroll" not in body_classes(results_html)

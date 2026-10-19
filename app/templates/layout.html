@@ -29,7 +29,7 @@
 
   </head>
 
-  <body>
+  <body class="{% block body_class %}{% endblock %}">
     <nav class="navbar navbar-expand-md" data-bs-theme="dark">
         <div class="container-fluid">
             <img src="{{ url_for('static', filename='favicon/web-app-manifest-512x512.png') }}" alt="Logo" width="30" height="24" class="d-inline-block align-text-top">
