@@ -13,3 +13,4 @@ missingnames.txt
 /reference_sql_scripts
 /subset_sql
 /deploy_database_with_commented_out_code
+/tests/test_app.py
