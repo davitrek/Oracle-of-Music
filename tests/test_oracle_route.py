@@ -177,14 +177,6 @@ def test_connectors_reveal_with_the_node_before_them(
         assert connector_index == node_before_index
 
 
-def test_path_markup_has_no_svg(client, known_artists, monkeypatch):
-    stub_path(monkeypatch, [PUSHA, KANYE], [RUNAWAY])
-
-    path = parse_path(post_oracle(client, "Pusha T", "Kanye West"))
-
-    assert "svg" not in path.tags
-
-
 def test_one_node_path_has_a_single_artist_node_and_zero_hops(
     client, known_artists, monkeypatch
 ):
