@@ -28,10 +28,6 @@ flowchart LR
 
 ![A Path from Bad Bunny to Olivia Rodrigo through Gorillaz and Robert Smith](docs/images/path_example.png)
 
-## Why I built it
-
-My friends and I kept asking whether two artists had ever worked together, and how far apart two artists really are. I'm interested in algorithms, and the size of the dataset made me choose them deliberately to keep the app fast. MusicBrainz data is submitted by users, so the hard part was filtering out low-quality and incorrect entries. MusicBrainz and Spotify are separate catalogues, so each artist and track also has to be matched across them, using fuzzy matching where names differ. The live site runs on a DigitalOcean VPS behind an Nginx reverse proxy, with the roughly 40 GB database self-hosted in Docker.
-
 ## Running locally
 
 ### Prerequisites
