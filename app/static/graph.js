@@ -67,6 +67,7 @@ function setupArtistTypeahead(inputId) {
     persist: false,
     openOnFocus: false,
     loadThrottle: 150,
+    onType: () => { failed = false; },
     shouldLoad: (query) => query.length >= MIN_QUERY_LENGTH,
     load: (query, callback) => {
       // Tom Select pools every response, so a stale response would otherwise
@@ -85,9 +86,11 @@ function setupArtistTypeahead(inputId) {
         })
         .then((results) => callback(results))
         .catch((err) => {
-          if (err.name === 'AbortError') return;
-          console.error('Artist search failed:', err);
-          failed = true;
+          // always call back so Tom Select's loading state ends
+          if (err.name !== 'AbortError') {
+            console.error('Artist search failed:', err);
+            failed = true;
+          }
           callback();
         });
     },
