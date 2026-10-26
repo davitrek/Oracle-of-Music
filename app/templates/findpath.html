@@ -5,15 +5,15 @@
 {% endblock %}
 
 {% block main %}
+  <link href="https://cdn.jsdelivr.net/npm/tom-select@2.6.2/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet" integrity="sha384-qNqaCnsmyTrYVwmqv4/4PcwMK8ZFAQnYPpVjWor+6cX6rKsPhebzu8vO2J3s+VZg" crossorigin="anonymous">
+  <script src="https://cdn.jsdelivr.net/npm/tom-select@2.6.2/dist/js/tom-select.complete.min.js" integrity="sha384-1mYKSrq1Nu5YJmWrIU9cvwWQlUyyukJJM9XMkAxY03nb/T69CK+Sn7rjFxVU3SSM" crossorigin="anonymous"></script>
   <h1>Speak to the Oracle:</h1>
   <form action="/oracle" method="post">
     <div class="mb-3">
-      <input autocomplete="off" autofocus class="form-control mx-auto w-auto" name="start" placeholder="Start Artist" type="text" id="start" list="start-artists">
-      <datalist id="start-artists"></datalist>
+      <input autocomplete="off" autofocus class="form-control mx-auto w-auto" name="start" placeholder="Start typing an Artist…" type="text" id="start">
     </div>
     <div class="mb-3">
-      <input autocomplete="off" class="form-control mx-auto w-auto" name="end" placeholder="End Artist" type="text" id="end" list="end-artists">
-      <datalist id="end-artists"></datalist>
+      <input autocomplete="off" class="form-control mx-auto w-auto" name="end" placeholder="Start typing an Artist…" type="text" id="end">
     </div>
     <button class="btn btn-primary" type="submit">Find Path!</button>
   </form>

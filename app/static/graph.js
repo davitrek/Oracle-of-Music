@@ -47,52 +47,65 @@ document.querySelectorAll('.path-node').forEach(node => {
   });
 });
 
-// typeahead
-function debounce(fn, delay) {
-  let timer;
-  return (...args) => {
-    clearTimeout(timer);
-    timer = setTimeout(() => fn(...args), delay);
-  };
-}
+// typeahead (Tom Select)
+const MIN_QUERY_LENGTH = 2;
 
-function setupArtistTypeahead(inputId, datalistId) {
-  const input = document.getElementById(inputId);
-  const datalist = document.getElementById(datalistId);
+function setupArtistTypeahead(inputId) {
+  let controller = null;
+  let failed = false;
 
-  const runSearch = debounce(async (query) => {
-    try {
-      const res = await fetch(`/api/artist_search?q=${encodeURIComponent(query)}`);
-      if (!res.ok) return;
-      const results = await res.json();
+  const ts = new TomSelect(`#${inputId}`, {
+    maxItems: 1,
+    valueField: 'name',
+    labelField: 'name',
+    searchField: [],
+    // keep the server's order: no client-side scoring or sorting
+    score: () => () => 1,
+    sortField: '$order',
+    create: true,
+    createOnBlur: true,
+    persist: false,
+    openOnFocus: false,
+    loadThrottle: 150,
+    shouldLoad: (query) => query.length >= MIN_QUERY_LENGTH,
+    load: (query, callback) => {
+      // Tom Select pools every response, so a stale response would otherwise
+      // show old options; clearOptions also resets the loaded-searches cache,
+      // so a repeated query refetches
+      if (controller) controller.abort();
+      controller = new AbortController();
+      const { signal } = controller;
+      failed = false;
+      ts.clearOptions();
 
-      datalist.innerHTML = '';
-
-      results.forEach((item) => {
-        const label = item.name;
-
-        const option = document.createElement('option');
-        option.value = label;
-        datalist.appendChild(option);
-      });
-    } catch (err) {
-      console.error('Artist search failed:', err);
-    }
-  }, 300);
-
-  input.addEventListener('input', (e) => {
-    const query = e.target.value.trim();
-    if (query.length > 1) {
-      runSearch(query);
-    } else {
-      datalist.innerHTML = '';
-    }
+      fetch(`/api/artist_search?q=${encodeURIComponent(query)}`, { signal })
+        .then((res) => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.json();
+        })
+        .then((results) => callback(results))
+        .catch((err) => {
+          if (err.name === 'AbortError') return;
+          console.error('Artist search failed:', err);
+          failed = true;
+          callback();
+        });
+    },
+    render: {
+      not_loading: () => '<div class="no-results">Keep typing for suggestions…</div>',
+      loading: () =>
+        '<div class="loading-suggestions"><span class="spinner" aria-hidden="true"></span>Suggestions loading…</div>',
+      no_results: () =>
+        `<div class="no-results">${failed ? "Couldn't load suggestions" : 'No matching Artists'}</div>`,
+      // freehand text is still created (on blur), just without a dropdown row
+      option_create: () => '',
+    },
   });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  setupArtistTypeahead('start', 'start-artists');
-  setupArtistTypeahead('end', 'end-artists');
+  setupArtistTypeahead('start');
+  setupArtistTypeahead('end');
 });
 
 async function loadSpotifyInfo(kind) {
