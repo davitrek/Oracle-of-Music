@@ -16,6 +16,14 @@ _Avoid_: Song, collab, recording
 The full credit line of a Track as published, which may name Artists not on the Path.
 _Avoid_: Track artists, artists string
 
+**Suggestion**:
+An Artist offered as a likely match while the user types an Artist's name.
+_Avoid_: Typeahead result, autocomplete, autofill
+
+**Disambiguation**:
+Short text that tells apart Artists sharing a name, shown only when a name clashes.
+_Avoid_: Comment, description
+
 **Path**:
 The full ordered chain from the start Artist to the end Artist, with each pair of neighbouring Artists joined by a Track.
 _Avoid_: Connection, link, result

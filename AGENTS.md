@@ -12,6 +12,10 @@ Uses the five default triage labels: needs-triage, needs-info, ready-for-agent, 
 
 Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
 
+## Libraries over hand-rolling
+
+For any self-contained feature a library plausibly covers (a typeahead, fuzzy matching via RapidFuzz, etc.), in any language, use a maintained existing library. Hand-roll only when no maintained library fits, or the best one still needs significant workarounds; then make a strong case for hand-rolling to the user before writing it.
+
 ## Spotify Web API
 
 Spotify's batch endpoints ("Get Several Artists", "Get Several Tracks", etc.) are deprecated. Fetch one item per request.
