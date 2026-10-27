@@ -97,7 +97,7 @@ function setupArtistTypeahead(inputId) {
     render: {
       not_loading: () => '<div class="no-results">Keep typing for suggestions…</div>',
       loading: () =>
-        '<div class="loading-suggestions"><span class="spinner" aria-hidden="true"></span>Suggestions loading…</div>',
+        '<div class="loading-suggestions"><span class="loading-spinner" aria-hidden="true"></span>Suggestions loading…</div>',
       no_results: () =>
         `<div class="no-results">${failed ? "Couldn't load suggestions" : 'No matching Artists'}</div>`,
       // freehand text is still created (on blur), just without a dropdown row

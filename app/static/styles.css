@@ -436,7 +436,7 @@ body.no-scroll {overflow: hidden}
   background-color: var(--surface-hover);
   color: var(--text-primary);
 }
-.ts-dropdown .loading-suggestions .spinner {
+.ts-dropdown .loading-suggestions .loading-spinner {
   display: inline-block;
   width: 1em;
   height: 1em;
@@ -449,5 +449,5 @@ body.no-scroll {overflow: hidden}
 }
 @keyframes ts-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) {
-  .ts-dropdown .loading-suggestions .spinner { animation-duration: 2s; }
+  .ts-dropdown .loading-suggestions .loading-spinner { animation-duration: 2s; }
 }
