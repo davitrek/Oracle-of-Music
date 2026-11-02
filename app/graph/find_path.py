@@ -88,7 +88,8 @@ def find_artist_link(adj, root, target) -> list[Artist] | None:
         if artist == target:
             return get_solved_path(parents, root, target)
         #  9          for all edges from v to w in G.adjacentEdges(v) do
-        for collaborator in adj[artist]:
+        # .get() so a lookup never inserts a missing artist into the shared adj
+        for collaborator in adj.get(artist, ()):
             # 10              if w is not labeled as explored then
             if not explored[collaborator]:
                 # 11                  label w as explored
@@ -111,51 +112,6 @@ def get_solved_path(parents, root, target) -> list[Artist]:
     path.reverse()
 
     return path
-
-
-def bfs(adj, root, target):
-    V = len(adj)
-    visited = [False] * V
-    res = []
-
-    src = 0
-    q = deque()
-    visited[src] = True
-    q.append(src)
-
-    while q:
-        curr = q.popleft()
-        res.append(curr)
-
-        # visit all the unvisited
-        # neighbours of current node
-        for x in adj[curr]:
-            if not visited[x]:
-                visited[x] = True
-                q.append(x)
-
-    return res
-
-
-# BFS for a single connected component
-def bfsConnected(adj, src, visited, res, target):
-    q = deque()
-    visited[src] = True
-    q.append(src)
-
-    while q:
-        curr = q.popleft()
-        res.append(curr)
-
-        # visit all the unvisited
-        # neighbours of current node
-        for x in adj[curr]:
-            if x is target:
-                res.append(x)
-                return True
-            if not visited[x]:
-                visited[x] = True
-                q.append(x)
 
 
 # creates list of TrackInfo that can be used to traverse corresponding artist path

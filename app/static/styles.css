@@ -389,3 +389,65 @@ body.no-scroll {overflow: hidden}
   height: 20px;
   object-fit: cover;
 }
+
+/* ---- Tom Select (Artist typeahead) ---- */
+.ts-wrapper {
+  display: block;
+  width: 20rem;
+  max-width: 100%;
+  margin-inline: auto;
+  text-align: left;
+}
+.ts-wrapper .ts-control,
+.ts-wrapper.single.input-active .ts-control {
+  background-color: var(--surface);
+  border-color: var(--surface-hover);
+  color: var(--text-primary);
+}
+.ts-wrapper .ts-control input,
+.ts-wrapper.single .ts-control .item {
+  color: var(--text-primary);
+}
+.ts-wrapper .ts-control input::placeholder {
+  color: var(--text-secondary);
+}
+.ts-wrapper.focus .ts-control {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 0.25rem rgba(var(--accent-rgb), 0.25);
+}
+.ts-dropdown,
+.ts-dropdown.form-control {
+  background-color: var(--surface);
+  border: 1px solid var(--surface-hover);
+  color: var(--text-primary);
+}
+.ts-dropdown .option,
+.ts-dropdown .no-results,
+.ts-dropdown .loading-suggestions {
+  color: var(--text-primary);
+}
+.ts-dropdown .no-results,
+.ts-dropdown .loading-suggestions {
+  color: var(--text-secondary);
+  padding: 0.5rem 0.75rem;
+}
+.ts-dropdown .active,
+.ts-dropdown .option:hover {
+  background-color: var(--surface-hover);
+  color: var(--text-primary);
+}
+.ts-dropdown .loading-suggestions .loading-spinner {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  margin-right: 0.5em;
+  vertical-align: -0.125em;
+  border: 2px solid var(--line-color);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: ts-spin 0.7s linear infinite;
+}
+@keyframes ts-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .ts-dropdown .loading-suggestions .loading-spinner { animation-duration: 2s; }
+}
