@@ -17,12 +17,16 @@ The full credit line of a Track as published, which may name Artists not on the 
 _Avoid_: Track artists, artists string
 
 **Suggestion**:
-An Artist offered as a likely match while the user types an Artist's name.
+An Artist in the Graph offered as a likely match while the user types an Artist's name.
 _Avoid_: Typeahead result, autocomplete, autofill
 
 **Disambiguation**:
 Short text that tells apart Artists sharing a name, shown only when a name clashes.
 _Avoid_: Comment, description
+
+**Graph**:
+The Artists the Oracle has loaded and the Tracks linking them. Every Path and every Suggestion comes from the Graph, so an Artist with no Track shared with another loaded Artist is not in it.
+_Avoid_: Adjacency list, network, database
 
 **Path**:
 The full ordered chain from the start Artist to the end Artist, with each pair of neighbouring Artists joined by a Track.
