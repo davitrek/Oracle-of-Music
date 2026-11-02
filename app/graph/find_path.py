@@ -1,7 +1,6 @@
 from collections import defaultdict, deque
 from itertools import pairwise
 
-import helpers
 from data import db_operations
 from data_classes import ArtistInfo, TrackInfo
 from integrations import spotify
@@ -10,59 +9,11 @@ from models import Artist
 # import sqlalchemy.exc # for errors
 
 
-class ArtistImage:
-    non_squareness = 0
-    url = ""
-    height = 0
-    width = 0
-
-
-def find_track_images(path_spotify_tracks):
-    images = []
-    for spotify_track in path_spotify_tracks:
-        best_image = None
-
-        spotify_track_images = spotify_track["album"]["images"]
-
-        for img in spotify_track_images:
-            if not best_image:
-                best_image = img
-                continue
-            else:
-                best_image = helpers.better_squarer_image(best_image, img)
-
-        images.append(best_image["url"])
-
-    return images
-
-
 def find_spotify_artist(artist: Artist) -> dict:
     spotify_id = db_operations.get_artist_spotify_id(artist)
     spotify_artist = spotify.get_spotify_artist_by_id(spotify_id)
 
     return spotify_artist
-
-
-def find_artist_link_images(path_artists):
-    images = []
-    for artist in path_artists:
-        best_image = None
-
-        spotify_artist = find_spotify_artist(artist)
-        artist_images = spotify_artist["images"]
-
-        for img in artist_images:
-            if not best_image:
-                best_image = helpers.convert_spotify_image_to_class(img)
-                continue
-            else:
-                best_image = helpers.better_squarer_image(
-                    best_image, helpers.convert_spotify_image_to_class(img)
-                )
-
-        images.append(best_image)
-
-    return images
 
 
 # BFS for single connected component
